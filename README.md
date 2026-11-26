@@ -15,7 +15,7 @@ python -m http.server 8000
 # depois acesse http://localhost:8000/casa-3d.html
 ```
 
-O arquivo tem cerca de **5,8 MB** (o modelo do carro responde por ~4,3 MB), então
+O arquivo tem cerca de **5,9 MB** (o modelo do carro responde por ~4,4 MB), então
 a primeira abertura demora um pouco mais em conexões lentas.
 
 É necessário acesso à internet: o Three.js 0.160 é carregado por CDN
