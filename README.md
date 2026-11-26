@@ -36,7 +36,8 @@ python -m http.server 8000
 ## Estrutura
 
 ```
-casa-3d.html   # aplicação completa (HTML + CSS + JS, arquivo único)
+casa-3d.html         # aplicação completa (HTML + CSS + JS, arquivo único)
+deploy/j4-core/      # publicação no servidor J4 Core (Termux + Cloudflare Tunnel)
 ```
 
 ## Tecnologia

@@ -1,0 +1,5 @@
+* text=auto
+
+# Scripts rodam no Termux (bash): sempre LF, mesmo no Windows
+*.sh text eol=lf
+*.py text eol=lf
