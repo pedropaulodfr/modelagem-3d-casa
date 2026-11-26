@@ -1,8 +1,9 @@
 # Casa 3D
 
 Maquete 3D navegável de uma casa térrea, construída a partir da planta baixa
-(escala 1:75, **7,37 × 18,45 m**). Todo o modelo é gerado por código no
-navegador — não há arquivos de malha externos.
+(escala 1:75, **7,37 × 18,45 m**). A casa é gerada por código no navegador; o
+carro da garagem (SW4) vai embutido na própria página, como glTF binário em
+base64 — o projeto continua sendo um arquivo único.
 
 ## Como abrir
 
@@ -13,6 +14,9 @@ pasta com qualquer servidor estático:
 python -m http.server 8000
 # depois acesse http://localhost:8000/casa-3d.html
 ```
+
+O arquivo tem cerca de **5,8 MB** (o modelo do carro responde por ~4,3 MB), então
+a primeira abertura demora um pouco mais em conexões lentas.
 
 É necessário acesso à internet: o Three.js 0.160 é carregado por CDN
 (importmap) e as fontes vêm do Google Fonts.
@@ -47,3 +51,4 @@ deploy/j4-core/      # publicação no servidor J4 Core (Termux + Cloudflare Tun
 - Geometria procedural com `BufferGeometry`, `mergeVertices` e `mergeGeometries`;
   materiais PBR, sombras PCF e tone mapping ACES Filmic.
 - Planta baixa embutida como imagem base64.
+- Modelo do SW4 embutido como glTF binário em base64, carregado com `GLTFLoader`.

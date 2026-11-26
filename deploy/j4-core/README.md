@@ -22,9 +22,10 @@ repositório, ela sobe sozinha.
 
 ## O que publicar
 
-O projeto da maquete é **um único arquivo** (`casa-3d.html`, autocontido: a
-geometria é gerada por código e a planta vai embutida em base64). Ele deve ficar
-disponível como `index.html` dentro de uma pasta do portal:
+O projeto da maquete é **um único arquivo** (`casa-3d.html`, autocontido: a casa
+é gerada por código, a planta vai embutida em base64 e o SW4 da garagem vai como
+glTF binário em base64). São **~5,8 MB**. Ele deve ficar disponível como
+`index.html` dentro de uma pasta do portal:
 
 ```
 ~/site/public/spaceapps/casa-3d/index.html
@@ -85,7 +86,7 @@ curl -s -o /dev/null -w "%{http_code}\n" https://spaceapps.online/casa-3d/
 curl -s -o /dev/null -w "index: %{http_code}  %{size_download} bytes\n" https://dash.spaceapps.online/spaceapps/casa-3d/
 ```
 
-Esperado: `200` e cerca de 268 KB. Se vier `403`, a pasta existe mas o
+Esperado: `200` e cerca de 5,8 MB. Se vier `403`, a pasta existe mas o
 `index.html` não foi para o lugar certo; se vier `404`, o caminho está errado.
 
 ## Opcional — card no portal
@@ -96,7 +97,7 @@ maquete, acrescente um card seguindo o padrão dos existentes, apontando para
 
 ## Observações técnicas
 
-- A página é estática: o celular só entrega o arquivo (268 KB). O WebGL roda no
+- A página é estática: o celular só entrega o arquivo (5,8 MB). O WebGL roda no
   navegador de quem visita, não no J4 Core.
 - O Three.js 0.160 vem por CDN (jsDelivr) e as fontes do Google Fonts, então o
   visitante precisa de internet — o celular não precisa baixar nada.
