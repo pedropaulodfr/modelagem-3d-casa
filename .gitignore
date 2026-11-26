@@ -1,0 +1,16 @@
+# Artefatos de trabalho locais (não fazem parte do projeto)
+*.glb
+*.gltf
+*.skp
+*.crate
+rustup-init.exe
+probe_*.png
+shot_*.png
+thumb_*.png
+new_*.png
+.edgeprofile/
+crates/
+tools/
+skp_extract/
+.claude/
+node_modules/
