@@ -1,5 +1,6 @@
 # Artefatos de trabalho locais (não fazem parte do projeto)
 *.glb
+!sw4.glb
 *.gltf
 *.skp
 *.crate

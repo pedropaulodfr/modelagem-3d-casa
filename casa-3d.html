@@ -162,6 +162,9 @@ details.dims summary { cursor: pointer; font-size: 12.5px; color: var(--muted); 
 
   <div class="sec">
     <div class="sec-t">Garagem</div>
+    <div class="field-row"><label for="car-toggle">Carro SW4</label><label style="display:flex;align-items:center;gap:7px;font-weight:500"><input type="checkbox" id="car-toggle"> Mostrar</label></div>
+    <div class="field-row" id="car-color-row" style="display:none"><label for="car-color">Cor do SW4</label><select id="car-color"></select></div>
+    <div id="car-status" style="font-size:12px;color:var(--muted);margin:-2px 0 6px;display:none"></div>
     <div class="field-row"><label for="gate-btn">Portão</label><button type="button" id="gate-btn" aria-pressed="false">Abrir portão</button></div>
     <div class="field-row"><label for="gate-finish">Acabamento</label><select id="gate-finish"></select></div>
     <div class="slider-row"><label for="gate-gap">Vão das ripas</label><input type="range" id="gate-gap" min="30" max="120" step="5" value="60"><output id="gate-gap-v" for="gate-gap">6,0 cm</output></div>
@@ -1079,8 +1082,158 @@ place(createWashingMachine(0.54, 0.561), [6.7, 3.2, 7.24, 3.761], 'N');
 for (const X of [1.52, 2.82]) place(createEggChair(), [X - 0.32, 12.56, X + 0.32, 13.2], 'S');
 place(createSideTable(), [1.99, 12.77, 2.35, 13.13], 'S', 0, false);
 
-/* O carro SW4 e suas funcionalidades foram removidos nesta branch de teste
-   ("experimento/sem-carro"). O restante da casa e da garagem permanece igual. */
+/* =====================================================================
+   VEÍCULO — Toyota SW4 2022 (carregado sob demanda)
+   O modelo é o mesmo GLB de ~105 mil triângulos usado antes, mas agora
+   fica em um arquivo separado (sw4.glb) e só é baixado quando o usuário
+   marca "Carro SW4" no painel. A página inicial fica leve (~300 KB).
+   Ordem de busca: sw4.glb junto da página (teste local) e, se não existir,
+   o mesmo arquivo no CDN do repositório (jsDelivr).
+   ===================================================================== */
+
+/* ---------- cores de pintura (referência: SW4 branco pérola com teto preto) ---------- */
+const SW4_COLORS = {
+  'Branco Pérola':   { color: 0xf3f0e8, metallic: 0.18, roughness: 0.24 },
+  'Branco Lunar':    { color: 0xf4f5f2, metallic: 0.05, roughness: 0.30 },
+  'Prata Supernova': { color: 0xc6cacd, metallic: 0.72, roughness: 0.30 },
+  'Cinza Grafite':   { color: 0x50555a, metallic: 0.72, roughness: 0.32 },
+  'Preto Attitude':  { color: 0x101215, metallic: 0.72, roughness: 0.28 },
+};
+
+/* medidas do GLB (bbox em metros) e escala para caber na vaga desenhada:
+   a garagem tem 4,50 m de profundidade e 4,31 m até a face do portão fechado,
+   então a SW4 entra a 90% (4,32 m), centrada na mesma vaga do carro anterior. */
+const SUV = { L: 4.80, W: 2.09, H: 1.82 };
+const SUV_SCALE = 0.90;
+const SUV_L = SUV.L * SUV_SCALE, SUV_W = SUV.W * SUV_SCALE;
+const SUV_CY = 16.02;
+let carColorName = 'Branco Pérola';
+const carPaintMats = [], sw4Mats = {};
+// regiões pretas (centroide do triângulo, em coordenadas do GLB: x lateral, y altura, z frente)
+const SW4_BLACK_BODY = (x, y, z) => (y > (z < -1.2 ? 1.34 : 1.26) && z < 0.7) || y > 1.36 || (y < 0.5 && Math.abs(x) > 0.8 && Math.abs(z) < 1.5)   // colunas (acima da cintura) e estribos
+  || (y < 0.58 && Math.abs(z) > 2.0);                           // parte baixa dos para-choques, dianteiro e traseiro
+const SW4_BLACK_CHROME = (x, y, z) => Math.abs(x) > 0.7 && (y > 0.85 || (y < 0.62 && z > -1.6 && z < 1.4));
+
+
+/* Separa de uma malha os triângulos que atendem a `pred` (centroide em coordenadas do GLB) e os entrega a outro material.
+   Usado para pintar de preto as colunas e a moldura das janelas, como no carro real. */
+function splitMeshByTriangle(mesh, pred, mat) {
+  const g = mesh.geometry, pos = g.attributes.position;
+  const idx = g.index ? g.index.array : Uint32Array.from({ length: pos.count }, (_, i) => i);
+  const keep = [], move = [];
+  for (let i = 0; i < idx.length; i += 3) {
+    const a = idx[i], b = idx[i + 1], c = idx[i + 2];
+    const cx = (pos.getX(a) + pos.getX(b) + pos.getX(c)) / 3, cy = (pos.getY(a) + pos.getY(b) + pos.getY(c)) / 3, cz = (pos.getZ(a) + pos.getZ(b) + pos.getZ(c)) / 3;
+    (pred(cx, cy, cz) ? move : keep).push(a, b, c);
+  }
+  if (!move.length) return 0;
+  const g2 = new THREE.BufferGeometry();
+  for (const [k, v] of Object.entries(g.attributes)) g2.setAttribute(k, v);
+  g.setIndex(keep); g2.setIndex(move);
+  const m2 = new THREE.Mesh(g2, mat); m2.name = mesh.name + '-preto';
+  m2.position.copy(mesh.position); m2.quaternion.copy(mesh.quaternion); m2.scale.copy(mesh.scale);
+  m2.castShadow = mesh.castShadow; m2.receiveShadow = mesh.receiveShadow;
+  mesh.parent.add(m2);
+  return move.length / 3;
+}
+
+function setCarColor(name) {
+  carColorName = name;
+  const c = SW4_COLORS[name] || SW4_COLORS['Branco Lunar'];
+  for (const m of carPaintMats) {
+    m.color.set(c.color);
+    m.metalness = c.metallic;
+    m.roughness = c.roughness;
+    m.needsUpdate = true;
+  }
+  try { invalidate(2); } catch { /* ainda durante a montagem da cena */ }
+}
+
+
+/* ---------- carregamento sob demanda do SW4 ---------- */
+const CAR_URLS = [
+  'sw4.glb',
+  'https://cdn.jsdelivr.net/gh/pedropaulodfr/modelagem-3d-casa@main/sw4.glb',
+];
+const CAR_RECT = [2.145 - SUV_W / 2, SUV_CY - SUV_L / 2, 2.145 + SUV_W / 2, SUV_CY + SUV_L / 2];
+let carRoot = null, carLoading = null;
+
+function setCarVisible(on) {
+  if (!carRoot) return;
+  carRoot.visible = on;
+  const i = obstacles.indexOf(CAR_RECT);
+  if (on && i < 0) obstacles.push(CAR_RECT);
+  else if (!on && i >= 0) obstacles.splice(i, 1);
+  renderer.shadowMap.needsUpdate = true;
+  invalidate();
+}
+
+async function fetchCarGLB() {
+  let lastErr;
+  for (const url of CAR_URLS) {
+    try {
+      const r = await fetch(url, { cache: 'force-cache' });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const b = await r.arrayBuffer();
+      if (b.byteLength < 1000000) throw new Error(`GLB incompleto (${b.byteLength} bytes)`);
+      return b;
+    } catch (e) { lastErr = e; }
+  }
+  throw lastErr || new Error('GLB do SW4 não encontrado');
+}
+
+async function loadCar() {
+  if (carRoot) return carRoot;
+  if (carLoading) return carLoading;
+  carLoading = (async () => {
+    const buffer = await fetchCarGLB();
+    const gltf = await new Promise((ok, fail) => new GLTFLoader().parse(buffer, '', ok, fail));
+    const model = gltf.scene;
+    // ancora no centro da projeção e no chão (o GLB vem com origem no centro)
+    const bb = new THREE.Box3().setFromObject(model);
+    const ctr = bb.getCenter(new THREE.Vector3());
+    const pivot = new THREE.Group();
+    model.position.set(-ctr.x, -bb.min.y, -ctr.z);
+    pivot.add(model);
+    pivot.scale.setScalar(SUV_SCALE);
+    pivot.name = 'sw4-body';
+
+    carRoot = place(new THREE.Group(), CAR_RECT, 'S', -0.1, false);
+    carRoot.name = 'sw4';
+    carRoot.visible = false;
+    carRoot.add(pivot);
+
+    carPaintMats.length = 0;
+    for (const k of Object.keys(sw4Mats)) delete sw4Mats[k];
+    model.traverse((o) => {
+      if (!o.isMesh) return;
+      o.castShadow = true;
+      o.receiveShadow = true;
+      const mats = Array.isArray(o.material) ? o.material : [o.material];
+      for (const m of mats) {
+        m.envMapIntensity = 1.0;
+        if (m.name === 'pintura') carPaintMats.push(m);
+        if (m.name) sw4Mats[m.name] = m;
+      }
+    });
+    // acabamento conforme as fotos do carro real (SW4 Diamond branco pérola)
+    const black = sw4Mats.teto;
+    const found = [];
+    model.traverse((o) => { if (o.isMesh && o.material && o.material.name) found.push(o); });
+    for (const o of found) {
+      if (o.material.name === 'pintura') splitMeshByTriangle(o, SW4_BLACK_BODY, black);
+      if (o.material.name === 'cromado') splitMeshByTriangle(o, SW4_BLACK_CHROME, black);
+    }
+    if (sw4Mats.placa) { sw4Mats.placa.color.set(0xf2f2f0); sw4Mats.placa.roughness = 0.45; }
+    if (sw4Mats.aro) { sw4Mats.aro.color.set(0x383b40); sw4Mats.aro.metalness = 0.85; sw4Mats.aro.roughness = 0.34; }
+    if (sw4Mats.farol) { sw4Mats.farol.color.set(0x6a6d72); sw4Mats.farol.metalness = 0.7; }
+    setCarColor(carColorName);
+    renderer.shadowMap.needsUpdate = true;
+    return carRoot;
+  })();
+  try { return await carLoading; } finally { carLoading = null; }
+}
+
 
 /* =====================================================================
    PORTAS — marcenaria procedural
@@ -3198,6 +3351,32 @@ const ease = t => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 let last = performance.now();
 hint.innerHTML = HINTS.orbit;
 document.getElementById('loading').remove();
+{ // carro SW4 sob demanda: padrão desligado, página leve
+  const toggle = document.getElementById('car-toggle');
+  const colorRow = document.getElementById('car-color-row');
+  const sel = document.getElementById('car-color');
+  const status = document.getElementById('car-status');
+  for (const n of Object.keys(SW4_COLORS)) sel.add(new Option(n, n));
+  sel.value = carColorName;
+  const showStatus = (text) => { status.textContent = text || ''; status.style.display = text ? 'block' : 'none'; };
+  sel.addEventListener('change', () => { carColorName = sel.value; if (carRoot) setCarColor(carColorName); });
+  toggle.addEventListener('change', async () => {
+    if (!toggle.checked) { setCarVisible(false); colorRow.style.display = 'none'; showStatus(''); return; }
+    toggle.disabled = true;
+    showStatus('Carregando o carro SW4 (~4,4 MB)…');
+    try {
+      await loadCar();
+      setCarVisible(true);
+      colorRow.style.display = '';
+      showStatus('');
+    } catch (err) {
+      console.warn('SW4: falha no carregamento sob demanda', err);
+      toggle.checked = false;
+      colorRow.style.display = 'none';
+      showStatus('Não foi possível carregar o carro. Verifique a internet e tente de novo.');
+    } finally { toggle.disabled = false; }
+  });
+}
 const animating = () => {
   for (const d of doors) if (Math.abs(d.target - d.t) > 1e-4 || Math.abs(d.v) > 1e-4) return true;
   return Math.abs(gate.target - gate.t) > 1e-4 || Math.abs(gate.v) > 1e-4;
