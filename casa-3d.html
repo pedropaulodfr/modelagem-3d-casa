@@ -3286,8 +3286,8 @@ function diagUpdate(now, rendered) {
 addEventListener('keydown', e => { if (e.key === 'F3') { e.preventDefault(); const cb = document.getElementById('q-diag'); cb.checked = !cb.checked; diagToggle(cb.checked); } });
 {
   const qs = document.getElementById('q-profile'), qa = document.getElementById('q-auto'), qd = document.getElementById('q-diag');
-  const weak = (navigator.deviceMemory && navigator.deviceMemory <= 4) || (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4);
-  qs.value = weak ? 'desempenho' : 'equilibrado'; setQuality(qs.value);
+  // padrão fixo: "Equilibrado" (a resolução automática continua ajustando o pixel ratio se o aparelho apertar)
+  qs.value = 'equilibrado'; setQuality('equilibrado');
   qs.addEventListener('change', () => setQuality(qs.value));
   qa.addEventListener('change', () => { Q.auto = qa.checked; if (!Q.auto) { Q.dpr = Q.dprMax; applyDpr(); } });
   qd.addEventListener('change', () => diagToggle(qd.checked));

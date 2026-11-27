@@ -38,7 +38,8 @@ a primeira abertura demora um pouco mais em conexões lentas.
   de ar-condicionado nos quartos + micro-ondas/forno). Ver o
   [relatório de verificação](RELATORIO-TOMADAS-NBR5410.md).
 - **Cômodos**: lista com as áreas de cada ambiente e o total.
-- **Desempenho**: perfis de qualidade, resolução automática e diagnóstico (F3).
+- **Desempenho**: perfis de qualidade (padrão **Equilibrado**), resolução
+  automática e diagnóstico (F3).
 - **Painel recolhível**: o botão `Minimizar` no cabeçalho (ou a tecla **M**) reduz os
   controles a uma pílula no canto, liberando a cena; o estado fica lembrado entre
   visitas. O cabeçalho é fixo, então o botão continua à mão com o painel rolado.
