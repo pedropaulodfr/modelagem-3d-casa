@@ -1,9 +1,9 @@
 # Casa 3D
 
 Maquete 3D navegável de uma casa térrea, construída a partir da planta baixa
-(escala 1:75, **7,37 × 18,45 m**). A casa é gerada por código no navegador; o
-carro da garagem (SW4) vai embutido na própria página, como glTF binário em
-base64 — o projeto continua sendo um arquivo único.
+(escala 1:75, **7,37 × 18,45 m**). A casa é gerada por código no navegador; a
+página é um arquivo único de **~310 KB**. O carro SW4 é **opcional**: fica em um
+GLB separado (`sw4.glb`, ~4,4 MB) e só é baixado quando marcado no painel.
 
 ## Como abrir
 
@@ -15,8 +15,9 @@ python -m http.server 8000
 # depois acesse http://localhost:8000/casa-3d.html
 ```
 
-O arquivo tem cerca de **6,2 MB** (o modelo do carro responde por ~4,4 MB), então
-a primeira abertura demora um pouco mais em conexões lentas.
+O arquivo tem cerca de **310 KB**; o carro SW4 (~4,4 MB) é baixado só quando
+marcado no painel, então a primeira abertura fica bem mais leve. O carro precisa
+de internet para buscar o GLB quando a página é aberta fora do repositório local.
 
 É necessário acesso à internet: o Three.js 0.160 é carregado por CDN
 (importmap) e as fontes vêm do Google Fonts.
@@ -28,7 +29,8 @@ a primeira abertura demora um pouco mais em conexões lentas.
 - **Corte das paredes**: slider de 0,30 m a 2,80 m para ver o interior.
 - **Camadas**: móveis, nomes dos cômodos, portas abertas e planta baixa projetada
   no piso.
-- **Garagem**: cor do carro, portão abre/fecha, acabamento e vão das ripas.
+- **Garagem**: carro SW4 opcional (carregado sob demanda, com troca de cor),
+  portão abre/fecha, acabamento e vão das ripas.
 - **Iluminação**: cinco horários do dia (manhã, meio-dia, tarde, entardecer e
   noite), cena, intensidade, temperatura de cor e tipos de luz, com estimativa de
   iluminância por cômodo comparada à referência de projeto.
@@ -98,7 +100,8 @@ verificação cláusula a cláusula, com o que foi corrigido, está em
 ## Estrutura
 
 ```
-casa-3d.html         # aplicação completa (HTML + CSS + JS, arquivo único)
+casa-3d.html         # aplicação completa (HTML + CSS + JS, arquivo único, ~310 KB)
+sw4.glb              # carro SW4 opcional (~4,4 MB), carregado sob demanda
 RELATORIO-TOMADAS-NBR5410.md  # verificação das tomadas contra NBR 5410/NBR 14136
 deploy/j4-core/      # publicação no servidor J4 Core (Termux + Cloudflare Tunnel)
 .qa/                 # servidor estático + testes automatizados (CDP e elétrica)
@@ -111,4 +114,5 @@ deploy/j4-core/      # publicação no servidor J4 Core (Termux + Cloudflare Tun
 - Geometria procedural com `BufferGeometry`, `mergeVertices` e `mergeGeometries`;
   materiais PBR, sombras PCF e tone mapping ACES Filmic.
 - Planta baixa embutida como imagem base64.
-- Modelo do SW4 embutido como glTF binário em base64, carregado com `GLTFLoader`.
+- Carro SW4 em `sw4.glb`, carregado sob demanda (também disponível via jsDelivr
+  quando a página é publicada), para a página inicial continuar leve.

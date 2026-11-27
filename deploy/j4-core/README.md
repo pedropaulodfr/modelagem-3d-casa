@@ -39,7 +39,7 @@ spaceapps/casa-3d|https://github.com/pedropaulodfr/modelagem-3d-casa.git|main||c
   `spaceapps.online/casa-3d/` (e não em `dash.spaceapps.online/casa-3d/`);
 - o 5º campo (`casa-3d.html`) é o **arquivo único** que vira `index.html`;
 - o commit publicado fica em `~/deploy/state/spaceapps_casa-3d.sha`; se o commit
-  não mudou, o `pull.sh` não reescreve os 6 MB (economiza o cartão e o log);
+  não mudou, o `pull.sh` não reescreve o arquivo (~310 KB; economiza o cartão e o log);
 - log de cada execução: `~/deploy/deploy.log`.
 
 ### Conferir que a atualização chegou
@@ -58,7 +58,7 @@ diferença de CRLF/LF, se você commitou do Windows).
 
 ### Regras para quem edita o projeto
 
-- O site é **um único arquivo** (`casa-3d.html`, ~6 MB, sem etapa de build).
+- O site é **um arquivo único** (`casa-3d.html`, ~310 KB, sem etapa de build). O carro SW4 é opcional (`sw4.glb`, ~4,4 MB) e, na versão publicada, é buscado no CDN do repositório quando o usuário marca a opção.
   Edite HTML, CSS e JS direto nele; não introduza bundler.
 - Mantenha `<meta charset="utf-8">` como **primeira linha**. O `server.py`
   responde `Content-Type: text/html` sem charset; sem essa meta o navegador lê
@@ -117,7 +117,7 @@ maquete, acrescente um card seguindo o padrão dos existentes, apontando para
 
 ## Observações técnicas
 
-- A página é estática: o celular só entrega o arquivo (6,2 MB). O WebGL roda no
+- A página é estática: o celular entrega o arquivo principal (~310 KB); o carro SW4 opcional (~4,4 MB) é buscado no CDN. O WebGL roda no
   navegador de quem visita, não no J4 Core.
 - Não há etapa de build nem dependências no servidor.
 - O `pull.sh` é genérico: aceita vários projetos, um por linha no `repos.conf`,
