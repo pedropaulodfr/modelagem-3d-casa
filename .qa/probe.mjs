@@ -288,6 +288,189 @@ async function main() {
     return;
   }
 
+  if (process.env.DOORS) {
+    const { writeFileSync, mkdirSync } = await import('node:fs');
+    mkdirSync('.qa/shots', { recursive: true });
+    const target = await openPage(BASE);
+    const cdp = await connect(target.webSocketDebuggerUrl);
+    await cdp.call('Runtime.enable');
+    await cdp.call('Page.enable');
+    const started = Date.now();
+    let ready = null;
+    while (Date.now() - started < 240000) {
+      const r = await cdp.call('Runtime.evaluate', {
+        expression: `({ rs: document.readyState, dbg: !!window.__dbg, loading: !!document.getElementById('loading') })`,
+        returnByValue: true,
+      });
+      ready = r.result.value;
+      if (ready.rs === 'complete' && ready.dbg && !ready.loading) break;
+      await sleep(400);
+    }
+    log('pronto em', Math.round((Date.now() - started) / 1000) + 's');
+    const evalJs = async (expr) => {
+      const r = await cdp.call('Runtime.evaluate', { expression: expr, awaitPromise: true, returnByValue: true, userGesture: true });
+      if (r.exceptionDetails) throw new Error(r.exceptionDetails.exception?.description || r.exceptionDetails.text);
+      return r.result.value;
+    };
+    const shot = async (name) => {
+      const r = await cdp.call('Page.captureScreenshot', { format: 'png' });
+      writeFileSync(`.qa/shots/${name}.png`, Buffer.from(r.data, 'base64'));
+      log('shot', name);
+    };
+    log('portas:', JSON.stringify(await evalJs(`window.__dbg.doors.map(d => ({ n: d.name, c: d.center.map(v => +v.toFixed(2)), h: [d.frame.position.x + 3.685, d.frame.position.z + 9.225].map(v => +v.toFixed(2)) }))`)));
+    // painel fora da imagem, rótulos desligados, parede inteira visível
+    await evalJs(`(() => {
+      document.getElementById('panel').style.display = 'none';
+      const l = document.getElementById('t-labels'); if (l.checked) l.click();
+      const cut = document.getElementById('cut'); cut.value = cut.max; cut.dispatchEvent(new Event('input', { bubbles: true }));
+      document.querySelector('[data-day="tarde"]').click();
+      return null; })()`);
+    await sleep(700);
+    // vista geral das portas dos quartos, parecida com a captura do relato (antes dos experimentos)
+    await evalJs(`(() => {
+      const D = window.__dbg;
+      const l = document.getElementById('t-labels'); if (!l.checked) l.click();
+      D.camera.position.set(6.6 - 3.685, 7.2, 8.4 - 9.225);
+      D.controls.target.set(2.2 - 3.685, 0.9, 5.4 - 9.225);
+      D.camera.fov = 40; D.camera.updateProjectionMatrix();
+      D.controls.update(); D.invalidate(6); return null; })()`);
+    await sleep(1200);
+    await shot('geral-portas');
+    // no modo caminhar, no corredor olhando as portas
+    await evalJs(`(() => {
+      const D = window.__dbg;
+      document.querySelector('#v-walk').click();
+      Object.assign(D.walker, { x: 3.45, y: 8.6, yaw: 2.7, pitch: -0.12 });
+      D.invalidate(6); return null; })()`);
+    await sleep(1200);
+    await shot('caminhar-portas');
+    await evalJs(`(() => { document.querySelector('#v-orbit').click(); return null; })()`);
+    await sleep(900);
+    // close-ups: câmera a ~1,4 m de cada porta, de frente
+    const views = [['Quarto 01']];
+    // portas fechadas: a moldura aparece inteira
+    await evalJs(`(() => { for (const d of window.__dbg.doors) { d.t = 0; d.target = 0; d.v = 0; d.pivot.rotation.y = 0; } window.__dbg.invalidate(4); return null; })()`);
+    await sleep(600);
+    const frameCam = (name) => `(() => {
+        const d = window.__dbg.doors.find(x => x.name === ${JSON.stringify(name)});
+        const D = window.__dbg, c = d.center, e = d.frame.matrixWorld.elements;
+        const cx = c[0] - 3.685, cz = c[1] - 9.225;
+        let nx = e[8], nz = e[10]; const nl = Math.hypot(nx, nz) || 1; nx /= nl; nz /= nl;
+        let tx = e[0], tz = e[2]; const tl = Math.hypot(tx, tz) || 1; tx /= tl; tz /= tl;
+        D.camera.position.set(cx + nx * 2.3 + tx * 0.55, 1.55, cz + nz * 2.3 + tz * 0.55);
+        D.controls.target.set(cx, 1.35, cz);
+        D.camera.fov = 38; D.camera.updateProjectionMatrix();
+        D.controls.update(); D.invalidate(4); return null; })()`;
+    for (const [name] of views) {
+      await evalJs(frameCam(name));
+      await sleep(900);
+      await shot('moldura-' + name.toLowerCase().replace(/ /g, '-'));
+      // só a moldura, pintada: mostra a silhueta real da geometria
+      await evalJs(`(() => {
+        const D = window.__dbg, d = D.doors.find(x => x.name === ${JSON.stringify(name)});
+        D.scene.traverse(o => { if (o.isMesh) o.visible = false; });
+        d.frame.visible = true;
+        d.frame.traverse(o => { if (!o.isMesh) return; const m = new D.THREE.MeshBasicMaterial({ color: 0xff0000, side: 2 }); o.material = m; o.visible = true; });
+        D.scene.background = new D.THREE.Color(0x101010);
+        D.invalidate(4); return null; })()`);
+      await sleep(1500);
+      await shot('moldura-isolada');
+      // experimento: mesma geometria com face dupla — a face de frente existe?
+      await evalJs(`(() => {
+        const d = window.__dbg.doors.find(x => x.name === ${JSON.stringify(name)});
+        const seen = new Set();
+        d.frame.traverse(o => { if (!o.isMesh || !o.material || seen.has(o.material)) return; seen.add(o.material);
+          const m = o.material.clone(); m.side = 2; m.needsUpdate = true; o.material = m; });
+        window.__dbg.invalidate(4); return null; })()`);
+      await sleep(1500);
+      await shot('moldura-face-dupla');
+      // experimento: mesma geometria, sem textura — separa z-fighting de UV/moiré
+      await evalJs(`(() => {
+        const d = window.__dbg.doors.find(x => x.name === ${JSON.stringify(name)});
+        const seen = new Set();
+        d.frame.traverse(o => { if (!o.isMesh || !o.material || seen.has(o.material)) return; seen.add(o.material);
+          const m = o.material.clone(); m.map = null; m.bumpMap = null; m.roughnessMap = null; m.color.set(0xd9b98a); m.needsUpdate = true; o.material = m; });
+        window.__dbg.invalidate(4); return null; })()`);
+      await sleep(1500);
+      await shot('moldura-sem-textura');
+      // experimento: bias da sombra do sol (se o padrão mudar, é acne de sombra)
+      await evalJs(`(() => {
+        const D = window.__dbg;
+        const sun = D.scene.children.find(o => o.isDirectionalLight) || D.scene.getObjectByProperty('isDirectionalLight', true);
+        if (!sun) return 'sem sol';
+        sun.shadow.bias = -0.01; sun.shadow.normalBias = 0.25;
+        D.renderer.shadowMap.needsUpdate = true; D.invalidate(4);
+        return 'bias alterado'; })()`).then(v => log('sombra:', v));
+      await sleep(1200);
+      await shot('moldura-bias-alto');
+      // experimento: esconde o grupo do batente/guarnição — a faixa pertence a ele?
+      log('frame:', JSON.stringify(await evalJs(`(() => {
+        const d = window.__dbg.doors.find(x => x.name === 'Quarto 01');
+        const out = [];
+        d.frame.traverse(o => { if (o.isMesh) out.push({ n: o.name || '', tris: o.geometry.attributes.position.count / 3, mat: o.material.name || o.material.type, col: o.material.color ? o.material.color.getHexString() : '-', maps: [!!o.material.map, !!o.material.bumpMap] }); });
+        return out; })()`)));
+      await evalJs(`(() => { const d = window.__dbg.doors.find(x => x.name === 'Quarto 01'); d.frame.visible = false; window.__dbg.invalidate(4); return null; })()`);
+      await sleep(900);
+      await shot('sem-moldura');
+      await evalJs(`(() => { const d = window.__dbg.doors.find(x => x.name === 'Quarto 01'); d.frame.visible = true; window.__dbg.invalidate(4); return null; })()`);
+      log('cena:', JSON.stringify(await evalJs(`window.__dbg.scene.children.map(c => ({ t: c.type, n: c.name || '-', kids: c.children.length, vis: c.visible }))`)));
+      // raycast nas duas faixas listradas: quem está ali?
+      log('parede-oculta:', JSON.stringify(await evalJs(`(() => {
+        const D = window.__dbg; let n = 0;
+        D.scene.traverse(o => { if (o.isMesh && o.material && o.material.color && o.material.color.getHexString() === 'f2f0eb') { o.visible = false; n++; } });
+        D.invalidate(4); return n; })()`)));
+      await sleep(900);
+      await shot('sem-parede');
+      log('todos-ocultos:', JSON.stringify(await evalJs(`(() => {
+        const D = window.__dbg; let n = 0;
+        D.scene.traverse(o => { if (o.isMesh && o.material && o.material.isMeshPhysicalMaterial && o.material.map && o.material.bumpMap) { o.visible = false; n++; } });
+        D.invalidate(4); return n; })()`)));
+      await sleep(900);
+      await shot('sem-madeira');
+      for (const gi of [3, 1]) {
+        await evalJs(`(() => { window.__dbg.scene.children[${gi}].visible = false; window.__dbg.invalidate(4); return null; })()`);
+        await sleep(800);
+        await shot('sem-grupo-' + gi);
+        await evalJs(`(() => { window.__dbg.scene.children[${gi}].visible = true; window.__dbg.invalidate(4); return null; })()`);
+      }
+      await evalJs(`(() => { window.__dbg.invalidate(4); return null; })()`);
+    }
+    for (const [name] of views) {
+      const ok = await evalJs(frameCam(name));
+      await sleep(800);
+      await shot('porta-' + name.toLowerCase().replace(/ /g, '-'));
+      if (ok !== 'ok') log('aviso', name, ok);
+      // detalhe: bem perto da guarnição esquerda
+      await evalJs(`(() => {
+        const d = window.__dbg.doors.find(x => x.name === ${JSON.stringify(name)});
+        const D = window.__dbg, c = d.center, e = d.frame.matrixWorld.elements;
+        const cx = c[0] - 3.685, cz = c[1] - 9.225;
+        let nx = e[8], nz = e[10]; const nl = Math.hypot(nx, nz) || 1; nx /= nl; nz /= nl;
+        let tx = e[0], tz = e[2]; const tl = Math.hypot(tx, tz) || 1; tx /= tl; tz /= tl;
+        D.camera.position.set(cx + nx * 0.55 + tx * 0.42, 1.55, cz + nz * 0.55 + tz * 0.42);
+        D.controls.target.set(cx + tx * 0.43, 1.5, cz + tz * 0.43);
+        D.camera.fov = 26; D.camera.updateProjectionMatrix();
+        D.controls.update(); D.invalidate(4); return null;
+      })()`);
+      await sleep(800);
+      await shot('detalhe-' + name.toLowerCase().replace(/ /g, '-'));
+      if (name === 'Quarto 01') {
+        // experimento: mesma geometria, sem textura — separa z-fighting de UV/moiré
+        await evalJs(`(() => {
+          const d = window.__dbg.doors.find(x => x.name === 'Quarto 01');
+          const seen = new Set();
+          d.frame.traverse(o => { if (!o.isMesh || !o.material || seen.has(o.material)) return; seen.add(o.material);
+            const m = o.material.clone(); m.map = null; m.bumpMap = null; m.roughnessMap = null; m.needsUpdate = true; o.material = m; });
+          window.__dbg.invalidate(4); return null; })()`);
+        await sleep(1200);
+        await shot('sem-textura-quarto-01');
+      }
+    }
+    cdp.close();
+    edge.kill();
+    return;
+  }
+
   if (process.env.QUICK) {
     const target = await openPage(BASE);
     const cdp = await connect(target.webSocketDebuggerUrl);

@@ -2534,7 +2534,13 @@ function mergeStaticMeshes() {
       let g = o.geometry.index ? o.geometry.toNonIndexed() : o.geometry.clone();
       for (const n of Object.keys(g.attributes)) if (!keep.includes(n)) g.deleteAttribute(n);
       if (!g.attributes.normal || !g.attributes.uv) { g.dispose(); return; }
-      g.clearGroups(); rel.multiplyMatrices(inv, o.matrixWorld); g.applyMatrix4(rel); g.computeBoundingSphere();
+      g.clearGroups(); rel.multiplyMatrices(inv, o.matrixWorld); g.applyMatrix4(rel);
+      // matriz de mundo espelhada (det < 0, ex.: quadro de porta pendurado numa base com
+      // orientação inversa) inverte a ordem dos vértices ao ser cozida na geometria. Sem
+      // desfazer isso, o batente e a guarnição passam a ser desenhados pelo lado de dentro
+      // e brigam com a face da parede (o xadrez no contorno do vão).
+      if (rel.determinant() < 0) flipWinding(g);
+      g.computeBoundingSphere();
       const cast = o.castShadow && g.boundingSphere.radius > 0.04, c = g.boundingSphere.center;   // peças minúsculas deixam de projetar sombra
       const key = [root.id, o.material.uuid, cast, o.receiveShadow, Math.floor(c.x / 5), Math.floor(c.z / 5), Object.keys(g.attributes).join()].join('|');
       let b = buckets.get(key); if (!b) buckets.set(key, b = { root, mat: o.material, cast, recv: o.receiveShadow, geos: [], src: [] });
@@ -2641,7 +2647,7 @@ if (loadingEl) loadingEl.textContent = 'compilando a iluminação…';
   for (const n of Object.keys(SW4_COLORS)) sel.add(new Option(n, n));
   sel.value = carColorName; sel.addEventListener('change', () => setCarColor(sel.value));
 }
-if (location.hostname === 'localhost') window.__dbg = { camera, controls, scene, renderer, LIGHTS, obstacles, walker, doors, setMode, PERF, Q, setQuality, MERGE_STATS, frame, invalidate, updateLightSet, followLights, loadMs: performance.now() };
+if (location.hostname === 'localhost') window.__dbg = { THREE, camera, controls, scene, renderer, LIGHTS, obstacles, walker, doors, setMode, PERF, Q, setQuality, MERGE_STATS, frame, invalidate, updateLightSet, followLights, loadMs: performance.now() };
 const animating = () => {
   for (const d of doors) if (Math.abs(d.target - d.t) > 1e-4 || Math.abs(d.v) > 1e-4) return true;
   return Math.abs(gate.target - gate.t) > 1e-4 || Math.abs(gate.v) > 1e-4;
