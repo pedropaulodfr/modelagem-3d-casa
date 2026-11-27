@@ -8,12 +8,12 @@
 
 ## 1. Resumo executivo
 
-Sim, **depois das correções feitas nesta verificação**. A maquete representa **33 pontos de
-tomada (36 tomadas)** no padrão **NBR 14136 (2P+T, 10 A e 20 A)** e a disposição dos pontos
+Sim, **depois das correções feitas nesta verificação**. A maquete representa **36 pontos de
+tomada (39 tomadas)** no padrão **NBR 14136 (2P+T, 10 A e 20 A)** e a disposição dos pontos
 atende aos critérios da **NBR 5410:2004** que podem ser conferidos em uma maquete 3D:
 quantidade mínima por ambiente, duas tomadas acima da bancada da pia, volume 3 nos banheiros,
-DR de 30 mA nos ambientes exigidos, TUE de 20 A em circuito independente e potência mínima
-atribuível.
+DR de 30 mA nos ambientes exigidos, **TUEs de 20 A em circuito independente** (3 splits de
+ar-condicionado + micro-ondas/forno) e potência mínima atribuível.
 
 A verificação encontrou **5 não conformidades na representação**, todas corrigidas:
 
@@ -30,6 +30,11 @@ A verificação encontrou **5 não conformidades na representação**, todas cor
 5. **Conferência interna inconsistente**: nomes de ambientes diferentes de `ROOMS`
    (`Sala`, `Sala de jantar`, `Circulação`, `Área de serviço`), mínimo da garagem contraditório
    e potência de 600 VA calculada de forma global em vez de por ambiente.
+
+**Acréscimo a pedido:** foram incluídos **3 pontos de ar-condicionado** (TUE de 20 A) nos
+quartos (Quarto 02, Quarto 01 e Suíte), no alto das paredes, próximos à posição prevista da
+evaporadora — ver §7.1. Com isso o projeto passa a **36 pontos / 39 tomadas** e **4 TUEs de
+20 A**.
 
 **O que não é possível afirmar:** circuitos, bitolas de condutores, disjuntores, seletividade,
 DR real, esquema de aterramento, quadro de distribuição, interruptores e a instalação física
@@ -84,8 +89,8 @@ da tomada e do plugue).
 | 9.5.2.2.1 d | Sala e dormitórios: 1 ponto/5 m ou fração | Q2 14,06 m→3 (4); Q1 12,00 m→3 (4); suíte 14,06 m→3 (5); sala 15,30 m→4 (6) | **Atende** |
 | 9.5.2.2.1 e | Demais cômodos: ≤ 2,25 m²→1; ≤ 6 m²→1; > 6 m²→1/5 m | Despensa 2,12 m²→1 (1) | **Atende** |
 | 9.5.2.2.2 | Potência mínima por ponto (600 VA até 3 pontos nos molhados; 100 VA nos demais; com conjunto > 6 pontos, 600 VA até 2 por ambiente) | Calculado por ambiente e gravado em `OUTLETS[].va` | **Atende** (ver §6) |
-| 4.2.1.2.3 c/d/e | TUE com potência do equipamento, a ≤ 1,5 m; vários equipamentos com tomadas suficientes | Único TUE (20 A) a 0,85 m do balcão; placa dupla onde faz sentido | **Atende** |
-| 9.5.3.1 | Equipamento > 10 A: circuito independente | TUE marcado (`tue: true`) e tomada de 20 A; circuito não é modelado | **Atende na representação** |
+| 4.2.1.2.3 c/d/e | TUE com potência do equipamento, a ≤ 1,5 m; vários equipamentos com tomadas suficientes | **4 TUEs de 20 A**: 3 splits (a 0,35 m da posição prevista da evaporadora) + micro-ondas/forno (a 1,27 m do balcão) | **Atende** |
+| 9.5.3.1 | Equipamento > 10 A: circuito independente | TUEs marcados (`tue: true`) em tomadas de 20 A; circuitos não são modelados | **Atende na representação** |
 | 9.1.2.1 / 9.1.4.3.1 | Banheiro: nenhum dispositivo nos volumes 0, 1 e 2 | Box delimitado por vidro em X = 0,98 m; tomadas a 2,65 m (volume 3) | **Atende** |
 | 9.1.4.3.2 c | Tomada no volume 3 com DR ≤ 30 mA | `dr: true` nos dois banheiros | **Atende na representação** |
 | 9.1.4.3.3 | Nenhuma tomada a < 0,60 m da porta de cabine pré-fabricada | Box é de alvenaria/vidro (não é cabine pré-fabricada); ainda assim as tomadas ficam a 1,47 m do vidro | **Não aplicável / atende por folga** |
@@ -107,11 +112,11 @@ o do contorno em L, 19,68 m, e não o do retângulo envolvente).
 
 | Ambiente | Área (m²) | Perímetro (m) | Mínimo NBR 5410 | Pontos previstos | Situação |
 |---|---:|---:|---:|---:|---|
-| Quarto 02 | 12,09 | 14,06 | 3 | 4 | ok |
-| Quarto 01 | 9,00 | 12,00 | 3 | 4 | ok |
+| Quarto 02 | 12,09 | 14,06 | 3 | 5 | ok |
+| Quarto 01 | 9,00 | 12,00 | 3 | 5 | ok |
 | BWC social | 3,90 | 8,60 | 1 | 1 | ok |
 | BWC suíte | 3,90 | 8,60 | 1 | 1 | ok |
-| Suíte | 12,09 | 14,06 | 3 | 5 | ok |
+| Suíte | 12,09 | 14,06 | 3 | 6 | ok |
 | Cozinha | 15,80 planta | 19,68 | 6 | 7 | ok |
 | Despensa | 2,12 | 6,06 | 1 | 1 | ok |
 | A. Serviço | 2,32 | 6,26 | 2 | 2 | ok |
@@ -119,8 +124,9 @@ o do contorno em L, 19,68 m, e não o do retângulo envolvente).
 | Varanda | 6,33 | 11,20 | 1 | 1 | ok |
 | Garagem (vaga descoberta) | 18,72 | 17,32 | sem mínimo (área externa) | 1 | ok, com DR |
 
-**Total: 33 pontos e 36 tomadas** (três pontos são placas duplas 4x4: mesa de trabalho da
-suíte, rack da sala e bancada da pia). Observações:
+**Total: 36 pontos e 39 tomadas** (três pontos são placas duplas 4x4: mesa de trabalho da
+suíte, rack da sala e bancada da pia; e há 3 TUEs de ar-condicionado, além do TUE da cozinha).
+Observações:
 
 - **Cozinha** é um ambiente em L, integrado à passagem para os quartos; os 7 pontos incluem o
   ponto da passagem (`CR-GER`), que antes estava rotulado como “Circulação”. O mínimo é 6.
@@ -175,6 +181,11 @@ representação); VA = potência mínima atribuível pela 9.5.2.2.2; TUE = ponto
 | 31 | CR-GER | Cozinha (passagem) | 2P+T 10 A | 0,30 | sim | 100 |
 | 32 | VR-LUZ | Varanda | 2P+T 10 A com tampa (IP44) | 0,45 | sim | 100 |
 | 33 | GR-GER | Garagem (fachada) | 2P+T 10 A com tampa (IP44) | 0,60 | sim | 100 |
+| 34 | Q2-AR | Quarto 02 | **2P+T 20 A** | 2,25 | — | TUE |
+| 35 | Q1-AR | Quarto 01 | **2P+T 20 A** | 2,25 | — | TUE |
+| 36 | ST-AR | Suíte | **2P+T 20 A** | 2,25 | — | TUE |
+
+Os pontos 34–36 são os TUEs de ar-condicionado acrescentados a pedido (§7.1).
 
 ## 6. Potência atribuível e DR (NBR 5410 9.5.2.2.2 e 5.1.3.2.2)
 
@@ -183,10 +194,15 @@ representação); VA = potência mínima atribuível pela 9.5.2.2.2; TUE = ponto
   excedentes, sempre considerando cada ambiente separadamente. Resultado: 6 pontos com
   600 VA (1 em cada banheiro, 2 na cozinha, 2 na área de serviço) e os demais com 100 VA.
 - **Demais ambientes**: 100 VA por ponto.
-- **TUE**: `CZ-AMERICANA` (20 A) recebe a potência do equipamento, não 100 VA.
+- **TUEs**: `Q2-AR`, `Q1-AR` e `ST-AR` (splits de ar-condicionado, 20 A) e `CZ-AMERICANA`
+  (micro-ondas/forno, 20 A) recebem a potência do equipamento, não 100 VA. Cada um deve
+  constituir **circuito independente** (9.5.3.1) e ficar a **≤ 1,5 m** do equipamento
+  (4.2.1.2.3-d); no modelo, os splits ficam a 0,35 m da posição prevista da evaporadora.
 - **DR de 30 mA**: 13 tomadas em banheiros (2), cozinha (7), área de serviço (2), varanda (1)
   e garagem/fachada (1). Nos quartos, suíte, sala e despensa não há exigência de DR pela
-  5.1.3.2.2 — o que não impede o projetista de adotar DR geral no quadro (recomendado).
+  5.1.3.2.2 — o que não impede o projetista de adotar DR geral no quadro (recomendado). Em
+  particular, a 5.1.3.2.2 **não exige DR** para a tomada do ar-condicionado no dormitório,
+  mas o circuito dedicado continua obrigatório quando o equipamento for > 10 A.
 
 ## 7. Correções de posição feitas na maquete
 
@@ -204,6 +220,30 @@ A conferência interna (`OUTLET_RULES`/`outletReport()`) passou a ser **gerada a
 potência de 600 VA passou a ser contada **por ambiente** (antes era global).
 
 ![Correções de posição conferidas na maquete](docs/tomadas-posicoes.png)
+
+### 7.1 Tomadas de ar-condicionado (acréscimo a pedido)
+
+Foram acrescentados **3 pontos de TUE de 20 A** para os splits dos quartos. A altura de 2,25 m
+(centro da placa; topo em 2,31 m) é usual para a tomada ao lado da evaporadora de parede, e a
+norma não fixa altura. A posição da evaporadora é uma **previsão** (`eq` em `OUTLETS`), a
+confirmar no projeto do ar-condicionado.
+
+| Ponto | Ambiente | Posição na planta | Altura | Tipo | Circuito |
+|---|---|---|---:|---|---|
+| `Q2-AR` | Quarto 02 | parede leste, x = 4,16 m, y = 2,75 m | 2,25 m | 2P+T 20 A (NBR 14136) | TUE independente |
+| `Q1-AR` | Quarto 01 | parede sul, x = 2,60 m, y = 6,261 m | 2,25 m | 2P+T 20 A (NBR 14136) | TUE independente |
+| `ST-AR` | Suíte | parede leste, x = 4,16 m, y = 11,90 m | 2,25 m | 2P+T 20 A (NBR 14136) | TUE independente |
+
+Critérios aplicados: ponto de uso específico a ≤ 1,5 m do equipamento (4.2.1.2.3-d; no modelo,
+0,35 m da posição prevista); circuito independente para equipamento > 10 A (9.5.3.1); tomada
+2P+T com PE (6.5.3.1). **A NBR 5410 5.1.3.2.2 não exige DR de 30 mA** para tomada de
+ar-condicionado em dormitório (não é local molhado nem área externa), mas o projetista pode
+adotar DR geral no quadro. A corrente do split deve ser confirmada: aparelhos usuais de até
+~12.000 BTU/h em 127 V ficam próximos de 10 A e pedem a tomada de 20 A; em 220 V a corrente é
+menor. Nenhum dos três pontos invade janela, porta ou móvel, e todos ficam abaixo do pé-direito
+de 2,80 m.
+
+![Tomadas de ar-condicionado acrescentadas](docs/tomadas-ar-condicionado.png)
 
 ## 8. NBR 14136 — o padrão brasileiro das tomadas
 
@@ -258,13 +298,15 @@ para X = 2,45 m para não ficar atrás da folha da porta quando ela abre (ver §
 
 **Verificado e conforme na representação:**
 
-- todos os 33 pontos estão em parede (nenhum flutuando ou atravessando parede);
+- todos os 36 pontos estão em parede (nenhum flutuando ou atravessando parede);
 - nenhuma placa invade vão de porta/janela (folga mínima encontrada: 0,09 m no `Q2-CAB-1`);
 - nenhuma tomada atrás de móvel alto (camas, armários, geladeira, fogão, tanque, máquina);
 - nenhuma tomada sob tampo de bancada (o TUE foi reposicionado);
 - todos os pontos estão a alturas normais e abaixo do pé-direito;
 - todos os ambientes têm ponto de luz no teto (44 luminárias, 13 zonas), conforme 9.5.2.1.1;
-- tomada de 20 A no TUE da cozinha, a 0,85 m do balcão e 1,10 m de altura.
+- **4 TUEs de 20 A** (3 splits de ar-condicionado nos quartos + micro-ondas/forno), todos a
+  ≤ 1,5 m do equipamento previsto; os splits ficam a 2,25 m de altura, sem conflito com
+  janelas, portas ou armários.
 
 **Não representado na maquete** (não pode ser afirmado como conforme):
 
@@ -280,8 +322,8 @@ para X = 2,45 m para não ficar atrás da folha da porta quando ela abre (ver §
 1. Contratar **projeto elétrico** e execução por profissional habilitado, com ART, seguindo a
    NBR 5410 e as concessionárias locais.
 2. No projeto executivo, definir circuitos e bitolas: tomadas de cozinha/área de serviço em
-   circuitos exclusivos (9.5.3.2), TUE de 20 A em circuito independente (9.5.3.1) e DR de
-   30 mA nos circuitos exigidos (5.1.3.2.2).
+   circuitos exclusivos (9.5.3.2), **TUEs de 20 A (3 splits + micro-ondas/forno) em circuitos
+   independentes** (9.5.3.1) e DR de 30 mA nos circuitos exigidos (5.1.3.2.2).
 3. Usar **tomadas certificadas** no padrão NBR 14136; não instalar tomada de 10 A em circuito
    de 20 A (e vice-versa) e não “forçar” plugues.
 4. Em banheiro, manter as tomadas no volume 3 (≥ 1,20 m além do box, de preferência) e testar
@@ -292,6 +334,11 @@ para X = 2,45 m para não ficar atrás da folha da porta quando ela abre (ver §
    atuação do DR, resistência de aterramento e inspeção do quadro.
 7. Manter o TUE de micro-ondas/forno a ≤ 1,5 m do ponto e sobre bancada, como no modelo
    corrigido.
+8. Para os **splits de ar-condicionado**: confirmar a corrente nominal de cada equipamento,
+   prever **circuito independente com tomada de 20 A** (ou a corrente adequada), posicionar a
+   tomada junto à evaporadora a ≤ 1,5 m e prever a infraestrutura (tubulação, dreno e
+   borracha de vedação) no projeto de ar-condicionado. Se o equipamento for > 10 A, o circuito
+   independente é obrigatório (9.5.3.1).
 
 ## 12. Arquivos gerados e como repetir a verificação
 

@@ -5,7 +5,7 @@
 //   - potência mínima atribuível (9.5.2.2.2) e DR 30 mA (5.1.3.2.2)
 //   - posição em parede, vãos de portas/janelas e móveis
 //   - volumes 0..3 dos banheiros (9.1.2.1 / 9.1.4.3)
-//   - TUE 20 A (4.2.1.2.3 d / 9.5.3.1)
+//   - TUEs de 20 A e distância à posição prevista do equipamento (4.2.1.2.3-d / 9.5.3.1)
 //   - geometria dos furos no padrão NBR 14136 (Ø 4,3 / 5,0 mm; fases 19 mm; terra a 3 mm)
 // Uso: node .qa/outlets-audit.mjs [caminho/casa-3d.html]
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -220,17 +220,18 @@ const sinkOk = sinkModules >= 2;
 if (!sinkOk) fail(`bancada da pia: ${sinkModules} tomada(s) acima (mínimo 2)`);
 
 /* ---------- TUE (4.2.1.2.3 d / 9.5.3.1) ---------- */
+const BAR = [5.249, 9.0, 6.39, 9.379];   // balcão da cozinha (equipamento do CZ-AMERICANA)
 const tue = OUTLETS.filter(o => o.tue).map(o => {
   const kind = OUTLET_KINDS[o.kind];
-  const bar = [5.249, 9.0, 6.39, 9.379];
-  const dx = Math.max(bar[0] - o.at[0], 0, o.at[0] - bar[2]);
-  const dy = Math.max(bar[1] - o.at[1], 0, o.at[1] - bar[3]);
-  const dist = Math.hypot(dx, dy);
-  const sobTampo = o.h + kind.h / 2 > 1.09 ? false : true; // tampo do balcão a 1,09 m
+  const eq = o.eq || (o.id === 'CZ-AMERICANA' ? [6.0, 9.19] : null);
+  if (!eq) fail(`${o.id}: TUE sem a previsão de posição do equipamento (eq)`);
+  const dist = eq ? Math.hypot(o.at[0] - eq[0], o.at[1] - eq[1]) : Infinity;
+  const eqNoBalcao = eq && eq[0] >= BAR[0] && eq[0] <= BAR[2] && eq[1] >= BAR[1] && eq[1] <= BAR[3];
+  const sobTampo = eqNoBalcao && o.h + kind.h / 2 <= 1.09; // tampo do balcão a 1,09 m
   if (kind.amp <= 10) fail(`${o.id}: TUE com tomada de ${kind.amp} A (equipamento > 10 A exige 20 A)`);
-  if (dist > 1.5) fail(`${o.id}: TUE a ${r2(dist)} m do ponto de uso (máx. 1,5 m)`);
+  if (dist > 1.5) fail(`${o.id}: TUE a ${r2(dist)} m do equipamento (máx. 1,5 m)`);
   if (sobTampo) fail(`${o.id}: TUE fica sob o tampo do balcão (h=${o.h} m) — inacessível para equipamento de bancada`);
-  return { id: o.id, tomada: kind.name, at: o.at, h: o.h, distBancada: r2(dist), sobTampo };
+  return { id: o.id, tomada: kind.name, at: o.at, h: o.h, eq, distEquip: r2(dist), sobTampo };
 });
 
 /* ---------- geometria NBR 14136 ---------- */

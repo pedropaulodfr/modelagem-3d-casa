@@ -29,6 +29,7 @@
 - [ ] `node .qa/outlets-audit.mjs` sem falhas: mínimos por ambiente, 2 tomadas acima da pia, volumes de banheiro, TUE, DR, potência e furos NBR 14136.
 - [ ] Close-ups das tomadas: 3 furos 2P+T, fases a 19 mm, terra a 3 mm, furo maior na de 20 A, superfície hexagonal.
 - [ ] Nenhuma tomada atrás de móvel alto, folha de porta, sob tampo de bancada ou dentro de vão de janela.
+- [ ] TUEs de 20 A dos splits de ar-condicionado nos dormitórios: altos, a ≤ 1,5 m da evaporadora e em circuito independente.
 
 **Declarações**
 - [ ] Hipóteses listadas (pé-direito, terreno, norte, cobertura, rua, tomadas).

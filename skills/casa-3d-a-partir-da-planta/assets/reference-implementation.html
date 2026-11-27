@@ -2640,7 +2640,7 @@ collectEnvMats(); setEnvFactor(DAY[LSTATE.day].env); applyLights();
    proteção, aterramento, interruptores nem tomadas de piso; portanto NÃO substitui projeto elétrico
    de profissional habilitado, nem comprova conformidade da instalação real.
    Configuração centralizada em OUTLETS: para mover, trocar de tipo ou remover um ponto, basta editar
-   a lista. A conferência de quantidade fica em OUTLET_RULES/outletReport() e o teste automated em
+   a lista. A conferência de quantidade fica em OUTLET_RULES/outletReport() e o teste automatizado em
    .qa/outlets-audit.mjs.
    ===================================================================== */
 const OUTLET_KINDS = {
@@ -2650,23 +2650,28 @@ const OUTLET_KINDS = {
   EXT: { w: 0.072, h: 0.114, mods: [[0, 0]], amp: 10, name: '2P+T 10 A com tampa (IP44)', lid: true },
 };
 // at = [X, Y] na face da parede (coordenadas da planta); n = normal da parede (aponta para dentro do ambiente); h = altura do centro
+// eq = [X, Y] da posição prevista do equipamento, só nos TUEs (para conferir a distância máxima de 1,5 m da 4.2.1.2.3-d)
 const OUTLETS = [
   // Quarto 02
   { id: 'Q2-CAB-1', room: 'Quarto 02', at: [0.13, 0.90], n: [1, 0], h: 0.55, kind: 'S10', use: 'cabeceira, carregador' },
   { id: 'Q2-CAB-2', room: 'Quarto 02', at: [0.13, 2.75], n: [1, 0], h: 0.55, kind: 'S10', use: 'cabeceira, carregador' },
   { id: 'Q2-TV', room: 'Quarto 02', at: [4.16, 1.85], n: [-1, 0], h: 1.25, kind: 'S10', use: 'televisão (parede oposta à cama)' },
   { id: 'Q2-GER', room: 'Quarto 02', at: [4.16, 0.75], n: [-1, 0], h: 0.30, kind: 'S10', use: 'uso geral, limpeza' },
+  // Ar-condicionado split: TUE de 20 A, alto e ao lado da evaporadora (o `eq` é a previsão do equipamento, para 4.2.1.2.3-d)
+  { id: 'Q2-AR', room: 'Quarto 02', at: [4.16, 2.75], n: [-1, 0], h: 2.25, kind: 'S20', tue: true, eq: [4.16, 2.40], use: 'ar-condicionado split (evaporadora), 20 A, circuito independente' },
   // Quarto 01
   { id: 'Q1-CAB-1', room: 'Quarto 01', at: [0.13, 3.98], n: [1, 0], h: 0.55, kind: 'S10', use: 'cabeceira, carregador' },
   { id: 'Q1-CAB-2', room: 'Quarto 01', at: [0.13, 5.98], n: [1, 0], h: 0.55, kind: 'S10', use: 'cabeceira, carregador' },
   { id: 'Q1-TV', room: 'Quarto 01', at: [3.13, 4.6], n: [-1, 0], h: 1.25, kind: 'S10', use: 'televisão (parede oposta à cama)' },
   { id: 'Q1-GER', room: 'Quarto 01', at: [3.13, 3.75], n: [-1, 0], h: 0.30, kind: 'S10', use: 'uso geral, limpeza' },
+  { id: 'Q1-AR', room: 'Quarto 01', at: [2.60, 6.261], n: [0, -1], h: 2.25, kind: 'S20', tue: true, eq: [2.25, 6.261], use: 'ar-condicionado split (evaporadora), 20 A, circuito independente' },
   // Suíte
   { id: 'ST-CAB-1', room: 'Suíte', at: [0.13, 9.5], n: [1, 0], h: 0.55, kind: 'S10', use: 'cabeceira, carregador' },
   { id: 'ST-CAB-2', room: 'Suíte', at: [0.13, 11.52], n: [1, 0], h: 0.55, kind: 'S10', use: 'cabeceira, carregador' },
   { id: 'ST-MESA', room: 'Suíte', at: [4.16, 10.84], n: [-1, 0], h: 1.05, kind: 'D10', use: 'mesa de trabalho (notebook e carregadores)' },
   { id: 'ST-TV', room: 'Suíte', at: [4.16, 9.75], n: [-1, 0], h: 1.25, kind: 'S10', use: 'televisão (parede oposta à cama)' },
   { id: 'ST-GER', room: 'Suíte', at: [3.4, 12.251], n: [0, -1], h: 0.30, kind: 'S10', use: 'uso geral, limpeza' },
+  { id: 'ST-AR', room: 'Suíte', at: [4.16, 11.90], n: [-1, 0], h: 2.25, kind: 'S20', tue: true, eq: [4.16, 12.25], use: 'ar-condicionado split (evaporadora), 20 A, circuito independente' },
   // Banheiros (longe do box e fora da zona do chuveiro; ao lado do lavatório).
   // No BWC social a porta abre contra a parede sul; o ponto fica entre o lavatório e a folha aberta.
   { id: 'BS-LAV', room: 'BWC social', at: [2.45, 7.691], n: [0, -1], h: 1.20, kind: 'S10', use: 'secador e barbeador, ao lado do lavatório' },
@@ -2676,7 +2681,7 @@ const OUTLETS = [
   { id: 'CZ-BANCADA', room: 'Cozinha', at: [7.24, 7.0], n: [-1, 0], h: 1.02, kind: 'D10', use: '2 tomadas acima da bancada da pia (parede sob o peitoril da janela da cuba)' },
   { id: 'CZ-GER-2', room: 'Cozinha', at: [6.0, 5.121], n: [0, 1], h: 1.10, kind: 'S10', use: 'uso geral (liquidificador, fritadeira elétrica)' },
   { id: 'CZ-COIFA', room: 'Cozinha', at: [7.24, 8.15], n: [-1, 0], h: 2.05, kind: 'S10', use: 'depurador, acima do fogão' },
-  { id: 'CZ-AMERICANA', room: 'Cozinha', at: [7.24, 8.93], n: [-1, 0], h: 1.10, kind: 'S20', tue: true, use: 'micro-ondas ou forno elétrico no balcão (TUE, tomada de 20 A, circuito independente; a <= 1,5 m do equipamento)' },
+  { id: 'CZ-AMERICANA', room: 'Cozinha', at: [7.24, 8.93], n: [-1, 0], h: 1.10, kind: 'S20', tue: true, eq: [6.0, 9.19], use: 'micro-ondas ou forno elétrico no balcão (TUE, tomada de 20 A, circuito independente; a <= 1,5 m do equipamento)' },
   { id: 'CZ-GER', room: 'Cozinha', at: [3.26, 8.4], n: [1, 0], h: 0.30, kind: 'S10', use: 'uso geral, limpeza' },
   // Sala de estar/jantar (ambiente único na planta)
   { id: 'SL-TV', room: 'Sala de estar/jantar', at: [4.29, 11.05], n: [1, 0], h: 1.25, kind: 'S10', use: 'televisão' },
@@ -2769,7 +2774,7 @@ const outletGroup = new THREE.Group(); outletGroup.name = 'tomadas'; scene.add(o
       }
     }
     // parafuso de fixação na placa, abaixo da janela (fora da face do soquete)
-    parts.push(part(disc(0.0024, 0.001), OC.screw, 0, -K.h / 2 + 0.012, T + 0.0005));
+    parts.push(part(disc(0.0024, 0.001), OC.screw, 0, -K.h / 2 + 0.012, T + 0.0014));
     return parts;
   };
   const MAT = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.55, metalness: 0, envMapIntensity: 0.45, clippingPlanes: clip, clipShadows: true });

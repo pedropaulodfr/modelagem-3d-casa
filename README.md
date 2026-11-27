@@ -32,9 +32,10 @@ a primeira abertura demora um pouco mais em conexões lentas.
 - **Iluminação**: cinco horários do dia (manhã, meio-dia, tarde, entardecer e
   noite), cena, intensidade, temperatura de cor e tipos de luz, com estimativa de
   iluminância por cômodo comparada à referência de projeto.
-- **Tomadas elétricas**: 33 pontos (36 tomadas) 2P+T no padrão NBR 14136, com 10 A e
+- **Tomadas elétricas**: 36 pontos (39 tomadas) 2P+T no padrão NBR 14136, com 10 A e
   20 A, e quantidade/posição conferidas pelos critérios da NBR 5410 — inclusive as duas
-  tomadas acima da bancada da pia, os volumes dos banheiros e o TUE de 20 A. Ver o
+  tomadas acima da bancada da pia, os volumes dos banheiros e os 4 TUEs de 20 A (3 splits
+  de ar-condicionado nos quartos + micro-ondas/forno). Ver o
   [relatório de verificação](RELATORIO-TOMADAS-NBR5410.md).
 - **Cômodos**: lista com as áreas de cada ambiente e o total.
 - **Desempenho**: perfis de qualidade, resolução automática e diagnóstico (F3).
@@ -83,10 +84,11 @@ posição, vãos, móveis, volumes de banheiro, TUE, DR, potência e a geometria
 
 ## Elétrica (NBR 5410 e NBR 14136)
 
-A maquete representa **33 pontos de tomada 2P+T (36 tomadas)** no padrão NBR 14136, de
+A maquete representa **36 pontos de tomada 2P+T (39 tomadas)** no padrão NBR 14136, de
 10 A e 20 A, com quantidade e posição conferidas pelos critérios da NBR 5410: mínimos por
 ambiente, duas tomadas acima da bancada da pia, volumes 0 a 3 dos banheiros, DR de 30 mA,
-TUE de 20 A e potência atribuível aos pontos. Interruptores, circuitos, quadro de
+**4 TUEs de 20 A (3 splits de ar-condicionado + micro-ondas/forno)** e potência atribuível aos
+pontos. Interruptores, circuitos, quadro de
 distribuição, condutores, aterramento e tomadas de piso **não** são modelados — a maquete
 não substitui projeto elétrico nem comprova a conformidade de uma instalação real. A
 verificação cláusula a cláusula, com o que foi corrigido, está em

@@ -40,6 +40,10 @@ não foi verificado.
 - **Compatibilidade:** a tomada de 20 A aceita plugue de 10 A (furo maior); a de 10 A não aceita
   plugue de 20 A. Não é só diferença de cor: o furo muda de diâmetro.
 - **Superfície protetora hexagonal** (aprox. 37 × 28 mm), rebaixada na face do módulo.
+- **Ponto de ar-condicionado (TUE):** tomada de **20 A** no alto da parede (≈2,10–2,30 m),
+  ao lado da evaporadora e a **≤ 1,5 m** dela (4.2.1.2.3-d); circuito independente quando o
+  equipamento tiver corrente > 10 A (9.5.3.1). A 5.1.3.2.2 **não exige DR** para tomada de
+  ar-condicionado em dormitório, mas o projeto pode prever DR geral no quadro.
 - **Placas:** 4x2 vertical (72 × 114 mm) para uma tomada; 4x4 (114 × 114 mm) para duas tomadas lado
   a lado; 8 mm de espessura com chanfro. O parafuso de fixação fica na placa, abaixo da janela do
   módulo — não sobre a face do soquete.
@@ -77,7 +81,8 @@ Seção `TOMADAS ELÉTRICAS` da implementação de referência.
    `ROOMS.a` e `ROOMS.p`).
 3. Pelos móveis da planta, decida onde cada ponto **serve**: cabeceiras (os dois lados da cama), TV
    (parede oposta ao sofá ou à cama), mesa de trabalho, rack, geladeira, fogão/coifa, bancada da pia
-   (2 acima da bancada), micro-ondas ou forno elétrico (20 A), máquina de lavar, varanda, garagem.
+   (2 acima da bancada), micro-ondas ou forno elétrico (20 A), máquina de lavar, **ar-condicionado
+   split dos dormitórios (TUE 20 A, alto e junto à evaporadora)**, varanda, garagem.
 4. **Banheiro:** calcule os volumes a partir do box e ponha a tomada no volume 3, junto ao lavatório,
    com folga; confira que ela não está a menos de 0,60 m da porta de cabine pré-fabricada.
 5. **Evite** tomada atrás de móvel que a impeça de ser usada, perto de portas e janelas (folga de
@@ -97,6 +102,9 @@ Seção `TOMADAS ELÉTRICAS` da implementação de referência.
   a dupla no limite da bancada e **declare a exceção**.
 - **Ponto TUE sob o tampo** de balcão é inacessível para o equipamento de bancada: posicione acima
   do tampo e a ≤ 1,5 m do equipamento.
+- **Ar-condicionado esquecido:** o quarto costuma precisar de um TUE de 20 A, alto e próximo da
+  evaporadora. Marque `tue: true` e declare a posição prevista do equipamento (para conferir os
+  1,5 m e o circuito independente); confirme a corrente do split no projeto de climatização.
 - **Garagem descoberta:** tratar como área externa (sem mínimo, mas com DR obrigatório e tomada
   com tampa). Se a vaga não tem parede própria, o ponto pode ficar na fachada junto à vaga.
 - **Banheiro:** tomada só no volume 3 (fora do box + 0,60 m + 0,60 m) e com DR de 30 mA; nunca no
