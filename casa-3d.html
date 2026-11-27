@@ -1,4 +1,5 @@
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Casa 3D</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -38,6 +39,8 @@
 }
 html, body { height: 100%; }
 body { background: var(--bg); color: var(--fg); font-family: var(--font-body); overflow: hidden; }
+/* Sem isto, o display:flex/grid de #hud e #pad vence o [hidden] do HTML e eles nunca somem. */
+[hidden] { display: none !important; }
 #app { position: fixed; inset: 0; }
 #app canvas { display: block; touch-action: none; }
 #labels { position: absolute; inset: 0; pointer-events: none; }
@@ -51,11 +54,20 @@ body { background: var(--bg); color: var(--fg); font-family: var(--font-body); o
   overflow-y: auto; overflow-x: hidden; background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
   backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); box-shadow: 0 6px 24px rgba(0,0,0,0.12);
   display: flex; flex-direction: column; }
-.p-head { padding: 14px 16px 12px; border-bottom: 1px solid var(--line); display: flex; align-items: flex-start; gap: 8px; }
+/* Cabeçalho fixo: o botão de minimizar continua alcançável com o painel rolado. */
+.p-head { position: sticky; top: 0; z-index: 2; padding: 14px 16px 12px; border-bottom: 1px solid var(--line);
+  display: flex; align-items: flex-start; gap: 8px; background: var(--panel);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
 .p-head > div { flex: 1; min-width: 0; }
 h1 { font-family: var(--font-display); font-size: 20px; font-weight: 600; margin: 0; letter-spacing: -0.01em; }
 .meta { font-family: var(--font-mono); font-size: 11px; color: var(--muted); margin-top: 3px; }
-#collapse { display: none; }
+#collapse { flex: none; display: inline-flex; align-items: center; justify-content: center; gap: 5px; margin-top: 1px;
+  min-height: 30px; padding: 6px 9px; font: 500 12px var(--font-body); color: var(--fg);
+  background: var(--chip); border: 1px solid var(--line); border-radius: 6px; cursor: pointer; white-space: nowrap; }
+#collapse:hover { background: var(--line); }
+#collapse svg { width: 13px; height: 13px; flex: none; transition: transform .18s ease; }
+#panel.min #collapse svg { transform: rotate(180deg); }
+
 .sec { padding: 12px 16px; border-bottom: 1px solid var(--line); display: flex; flex-direction: column; gap: 8px; }
 .sec:last-child { border-bottom: 0; }
 .sec-t { font-size: 10.5px; font-weight: 600; letter-spacing: 0.09em; text-transform: uppercase; color: var(--muted); }
@@ -78,6 +90,14 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); ou
 .rooms li.total button:hover { background: none; }
 .hint { font-size: 11.5px; color: var(--muted); line-height: 1.45; margin: 0; }
 .hint kbd { font-family: var(--font-mono); font-size: 10.5px; padding: 0 4px; border: 1px solid var(--line); border-radius: 3px; background: var(--chip); }
+
+/* Painel minimizado: sobra só o cabeçalho, que encolhe para uma pílula no canto. */
+#panel.min { width: auto; max-height: none; overflow: visible; }
+#panel.min .p-head { padding: 8px 9px 8px 13px; border-bottom: 0; align-items: center; gap: 9px; }
+#panel.min .p-head .meta { display: none; }
+#panel.min h1 { font-size: 16px; }
+#panel.min #collapse { padding: 6px 8px; gap: 4px; }
+#panel.min #panel-body { display: none; }
 
 #hud { position: fixed; z-index: 4; top: calc(12px + env(safe-area-inset-top, 0px)); right: max(12px, env(safe-area-inset-right, 0px));
   background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; font-size: 13px; display: flex; gap: 10px; align-items: center; }
@@ -109,10 +129,13 @@ details.dims summary { cursor: pointer; font-size: 12.5px; color: var(--muted); 
 @media (max-width: 720px) {
   #panel { top: auto; bottom: calc(10px + env(safe-area-inset-bottom, 0px)); left: max(10px, env(safe-area-inset-left, 0px));
     right: max(10px, env(safe-area-inset-right, 0px)); width: auto; max-height: 52%; }
-  #collapse { display: inline-flex; background: var(--chip); color: var(--fg); border: 1px solid var(--line); border-radius: 6px;
-    font: 500 12px var(--font-body); padding: 5px 9px; cursor: pointer; }
-  #panel.min .sec { display: none; }
+  /* Minimizado no celular: encosta embaixo à esquerda em vez de ocupar a largura toda. */
+  #panel.min { right: auto; max-width: calc(100% - 20px); }
+  #panel.min ~ #pad { bottom: calc(16px + env(safe-area-inset-bottom, 0px)); }
+  /* No modo caminhar o D-pad ocupa o canto; acima da folha aberta e da pílula minimizada. */
   #pad { bottom: calc(76px + env(safe-area-inset-bottom, 0px)); }
+  body.walking #panel:not(.min) ~ #pad { bottom: calc(52% + 16px + env(safe-area-inset-bottom, 0px)); }
+  body.walking #panel.min { bottom: calc(120px + env(safe-area-inset-bottom, 0px)); }
 }
 @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
 </style>
@@ -126,8 +149,13 @@ details.dims summary { cursor: pointer; font-size: 12.5px; color: var(--muted); 
       <h1>Casa 3D</h1>
       <div class="meta">planta baixa · esc. 1:75 · 7,37 × 18,45 m</div>
     </div>
-    <button id="collapse" type="button" aria-expanded="true">Ocultar</button>
+    <button id="collapse" type="button" aria-expanded="true" aria-controls="panel-body" aria-label="Minimizar controles" title="Minimizar controles (M)">
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 15l6-6 6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span id="collapse-label">Minimizar</span>
+    </button>
   </div>
+
+  <div id="panel-body">
 
   <div class="sec">
     <div class="sec-t">Visualização</div>
@@ -198,7 +226,13 @@ details.dims summary { cursor: pointer; font-size: 12.5px; color: var(--muted); 
   <div class="sec">
     <p class="hint" id="hint"></p>
   </div>
+  </div>
 </aside>
+
+<script>
+/* Restaura o painel minimizado antes da primeira pintura, para não piscar aberto. */
+try { if (localStorage.getItem('casa3d:painel-min') === '1') document.getElementById('panel').classList.add('min'); } catch (e) {}
+</script>
 
 <div id="hud" hidden><span>Você está em: <b id="hud-room">—</b></span><button type="button" id="hud-exit">Sair</button></div>
 <div id="pad" hidden>
@@ -1565,7 +1599,7 @@ function focusRoom(room) {
 let mode = 'orbit';
 const hint = document.getElementById('hint');
 const HINTS = {
-  orbit: 'Arraste para girar, <kbd>botão direito</kbd> ou dois dedos para mover, roda ou pinça para aproximar. Clique num cômodo da lista para ir até ele.',
+  orbit: 'Arraste para girar, <kbd>botão direito</kbd> ou dois dedos para mover, roda ou pinça para aproximar. Clique num cômodo da lista para ir até ele. <kbd>M</kbd> minimiza os controles.',
   top: 'Vista de cima, como a planta. Arraste com o <kbd>botão direito</kbd> para mover e use a roda para aproximar.',
   walk: 'Arraste na tela para olhar em volta. Ande com <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> ou as setas (segure <kbd>Shift</kbd> para correr). As portas abrem quando você chega perto. <kbd>Esc</kbd> sai.',
 };
@@ -1581,6 +1615,7 @@ function setMode(m) {
   document.querySelectorAll('.seg button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === m)));
   hint.innerHTML = HINTS[m];
   const walking = m === 'walk';
+  document.body.classList.toggle('walking', walking);
   document.getElementById('hud').hidden = !walking;
   document.getElementById('pad').hidden = !walking || !matchMedia('(pointer: coarse)').matches;
   ceilGroup.visible = walking;
@@ -1603,6 +1638,7 @@ function setMode(m) {
     else { if (prev === 'top') flyTo(new THREE.Vector3(10, 21, 17), new THREE.Vector3(0, 0, 0.5)); }
   }
   applyDoorTargets();
+  updateLightSet();   // no modo caminhar as vagas de luz passam a seguir quem anda
 }
 document.querySelectorAll('.seg button').forEach(b => b.addEventListener('click', () => setMode(b.dataset.mode)));
 document.getElementById('hud-exit').addEventListener('click', () => setMode('orbit'));
@@ -1615,11 +1651,25 @@ tDoors.addEventListener('change', applyDoorTargets);
 tPlan.addEventListener('change', () => planPlane.visible = tPlan.checked);
 function applyDoorTargets() { if (mode !== 'walk') doors.forEach(d => d.target = tDoors.checked ? 1 : 0); }
 
-// Painel recolhível (celular)
-const panel = document.getElementById('panel'), collapseBtn = document.getElementById('collapse');
-collapseBtn.addEventListener('click', () => {
-  const min = panel.classList.toggle('min');
-  collapseBtn.textContent = min ? 'Mostrar' : 'Ocultar'; collapseBtn.setAttribute('aria-expanded', String(!min));
+// Painel recolhível (desktop e celular): botão no cabeçalho, atalho M e estado lembrado.
+const panel = document.getElementById('panel'), collapseBtn = document.getElementById('collapse'), collapseLabel = document.getElementById('collapse-label');
+const PANEL_KEY = 'casa3d:painel-min';
+function setPanelMin(min, persist = true) {
+  panel.classList.toggle('min', min);
+  collapseBtn.setAttribute('aria-expanded', String(!min));
+  collapseBtn.title = min ? 'Expandir controles (M)' : 'Minimizar controles (M)';
+  collapseBtn.setAttribute('aria-label', collapseBtn.title);
+  collapseLabel.textContent = min ? 'Expandir' : 'Minimizar';
+  if (min) panel.scrollTop = 0;
+  if (persist) { try { localStorage.setItem(PANEL_KEY, min ? '1' : '0'); } catch (e) {} }
+}
+setPanelMin(panel.classList.contains('min'), false);   // o estado salvo já foi aplicado antes da pintura
+collapseBtn.addEventListener('click', () => setPanelMin(!panel.classList.contains('min')));
+addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey || e.altKey || e.repeat) return;
+  const t = e.target;
+  if (t && (t.isContentEditable || /^(INPUT|SELECT|TEXTAREA)$/.test(t.tagName))) return;
+  if (e.key === 'm' || e.key === 'M') { e.preventDefault(); setPanelMin(!panel.classList.contains('min')); }
 });
 
 /* --------------------------- Modo caminhar -------------------------- */
@@ -1999,12 +2049,80 @@ function updateBounce() {
   const night = 1 - Math.min(1, (DAY[LSTATE.day]?.sun ?? 0) / 2.4);
   bounce.color.copy(kelvinColor(3000 + LSTATE.shift)); bounce.intensity = 0.22 * (sum / n) * night;
 }
+/* ---------- orçamento de luzes na GPU ----------
+   Trocar a QUANTIDADE de luzes visíveis obriga o three.js a compilar de novo o shader de
+   todos os materiais, e isso custa caro numa GPU integrada (medido no Vega 8: 16 luzes =
+   19 s de compilação, 24 = 27 s, 43 = 3 min 15 s). É essa recompilação — disparada a cada
+   passo no modo caminhar, quando as luzes entravam e saíam por proximidade — que travava
+   o navegador.
+   Solução: a QUANTIDADE de luzes no shader é FIXA (SPOT_SLOTS + POINT_SLOTS + RECT_SLOTS).
+   O que muda é só QUAIS ocupam as vagas: no modo caminhar valem as mais próximas de você,
+   então todas as luminárias do ambiente em que você está — e as da fachada, quando você
+   está na frente da casa — acendem. Com a contagem constante, nada é recompilado ao andar,
+   acender, apagar ou trocar de cena.
+   As luminárias também não projetam sombra (só o sol projeta; à noite ele está apagado) —
+   sombra de luminária é o que mais pesa na compilação. As duas luzes retangulares dos
+   espelhos ficam fora do shader: só elas custavam ~25 s de compilação (medido), e os
+   plafons dos banheiros já cuidam da iluminação local. */
+const SPOT_SLOTS = 14, POINT_SLOTS = 4, RECT_SLOTS = 0;
+const ANCHOR_R = 1.2;   // só refaz a escolha depois de andar mais que isso (metros)
+let POINT_PICK = [], RECT_PICK = [];   // vagas fixas de quem não depende da posição
+
+// As SPOT_SLOTS luzes mais próximas de um ponto da planta (coordenadas do desenho).
+function nearestSpots(ax, ay, n) {
+  const d = L => Math.hypot(L.pos.x + CX - ax, L.pos.z + CZ - ay);
+  return LIGHTS.filter(L => L.kind === 'spot').sort((a, b) => d(a) - d(b)).slice(0, n);
+}
+// Conjunto que cobre a casa inteira: a maior luminária de cada ambiente, em rodízio.
+function coverageSpots(n) {
+  const zones = [];
+  for (const L of LIGHTS) if (L.kind === 'spot' && !zones.includes(L.zone)) zones.push(L.zone);
+  const groups = zones.map(z => LIGHTS.filter(L => L.zone === z && L.kind === 'spot').sort((a, b) => b.lm - a.lm));
+  const out = [];
+  for (let i = 0; out.length < n; i++) {
+    let any = false;
+    for (const g of groups) { if (!g[i]) continue; out.push(g[i]); any = true; if (out.length >= n) break; }
+    if (!any) break;
+  }
+  return out;
+}
+
+let lightAnchor = null;   // de onde a última escolha foi feita (planta)
+function updateLightSet() {
+  const spots = mode === 'walk' ? nearestSpots(walker.x, walker.y, SPOT_SLOTS) : coverageSpots(SPOT_SLOTS);
+  const set = new Set(spots);
+  for (const L of POINT_PICK) set.add(L);
+  for (const L of RECT_PICK) set.add(L);
+  // troca de ocupante, nunca de quantidade: o número de luzes no shader não muda
+  for (const L of LIGHTS) { const on = set.has(L); if (L.light.visible !== on) L.light.visible = on; }
+  lightAnchor = mode === 'walk' ? [walker.x, walker.y] : null;
+}
+
+// Chamado uma vez, quando todas as luzes já foram criadas (inclusive as da fachada).
+function prepareGpuLights() {
+  for (const L of LIGHTS) {
+    if (!L.light.castShadow) continue;
+    L.light.castShadow = false;
+    if (L.light.shadow.map) { L.light.shadow.map.dispose(); L.light.shadow.map = null; }
+  }
+  POINT_PICK = LIGHTS.filter(L => L.kind === 'point').sort((a, b) => b.lm - a.lm).slice(0, POINT_SLOTS);
+  RECT_PICK = LIGHTS.filter(L => L.kind === 'rect').slice(0, RECT_SLOTS);
+  updateLightSet();
+}
+
+// No caminhar a escolha acompanha o passo (checagem a cada 0,25 s, só se andou o bastante).
+let lightT = 0;
+function followLights(now) {
+  if (mode !== 'walk' || now - lightT < 250) return;
+  lightT = now;
+  if (!lightAnchor || Math.hypot(walker.x - lightAnchor[0], walker.y - lightAnchor[1]) > ANCHOR_R) updateLightSet();
+}
+
 function applyLights() {
   for (const L of LIGHTS) {
     const lv = levelOf(L), col = kelvinColor(L.K + LSTATE.shift);
     L.lv = lv; L.light.color.copy(col);
-    // luz apagada sai do cálculo (de dia a casa fica só com sol e céu); o shader é recompilado uma vez por combinação
-    const on = lv > 0.001 && L.near !== false; if (L.light.visible !== on) { L.light.visible = on; renderer.shadowMap.needsUpdate = true; }
+    // intensidade sempre; quem decide visibilidade é updateLightSet(), com contagem fixa
     L.light.intensity = (L.kind === 'rect' ? L.cd / L.area : L.cd) * RENDER_K * lv;
     for (const m of L.em) { m.emissive.copy(col); m.emissiveIntensity = lv > 0.001 ? 0.35 + 1.25 * Math.min(1.2, lv) : 0; }
   }
@@ -2037,6 +2155,10 @@ function applyDaylight(key) {
   scene.background = new THREE.Color(d.sky); scene.fog = new THREE.Fog(d.sky, 45, 110);
   setEnvFactor(d.env); M.ceil.emissiveIntensity = d.env;
   renderer.toneMappingExposure = d.exp;
+  // à noite o sol está apagado: recalcular a sombra dele a cada quadro seria desperdício
+  // (a textura antiga continua ligada, mas com intensidade 0 ela não aparece)
+  sun.shadow.autoUpdate = d.sun > 0.01;
+  if (sun.shadow.autoUpdate) sun.shadow.needsUpdate = true;
   document.querySelectorAll('[data-day]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.day === key)));
   setLightScene(d.scene);
   renderer.shadowMap.needsUpdate = true;
@@ -2367,6 +2489,8 @@ function facadeSconce(X, Y, y, o) { // Y = plano da face onde a arandela é fixa
 }
 // duas nos pilares do portão e duas ladeando o ripado, a 1,75 m do piso; nenhuma sobre parte móvel
 for (const [X, Y] of [[0.125, 18.451], [4.165, 18.451], [4.82, 18.401], [7.235, 18.401]]) facadeSconce(X, Y, 1.75, { lm: 320, K: 3000 });
+// todas as luzes já existem (inclusive as da fachada): fecha o orçamento que vai para a GPU
+prepareGpuLights();
 
 /* ---------- (8) controles ---------- */
 {
@@ -2385,7 +2509,7 @@ collectEnvMats(); setEnvFactor(DAY[LSTATE.day].env); applyLights();
    DESEMPENHO
    (1) renderização sob demanda · (2) mescla de peças estáticas por região e material
    (3) matrizes congeladas · (4) perfis de qualidade e resolução automática
-   (5) luzes por proximidade no modo caminhar · (6) painel de diagnóstico
+   (5) painel de diagnóstico
    Nada aqui altera geometria, posição, material ou iluminação: só como e quando se desenha.
    ===================================================================== */
 
@@ -2438,9 +2562,9 @@ renderer.shadowMap.needsUpdate = true;
 
 /* ---------- (4) perfis de qualidade ---------- */
 const QUALITY = {
-  alto:        { dprCap: 2,   sun: 2048, spot: 512, aniso: 8, cull: Infinity },
-  equilibrado: { dprCap: 1.5, sun: 2048, spot: 512, aniso: 4, cull: 12 },
-  desempenho:  { dprCap: 1,   sun: 1024, spot: 256, aniso: 2, cull: 8 },
+  alto:        { dprCap: 2,   sun: 2048, spot: 512, aniso: 8 },
+  equilibrado: { dprCap: 1.5, sun: 2048, spot: 512, aniso: 4 },
+  desempenho:  { dprCap: 1,   sun: 1024, spot: 256, aniso: 2 },
 };
 const Q = { name: 'equilibrado', auto: true, dpr: 1, dprMax: 1 };
 const ALL_TEX = new Set();
@@ -2453,7 +2577,7 @@ function setQuality(name) {
   for (const L of LIGHTS) if (L.light.castShadow) { L.light.shadow.mapSize.set(Q.spot, Q.spot); if (L.light.shadow.map) { L.light.shadow.map.dispose(); L.light.shadow.map = null; } }
   const an = Math.min(Q.aniso, renderer.capabilities.getMaxAnisotropy());
   for (const t of ALL_TEX) if (t.anisotropy !== an) { t.anisotropy = an; t.needsUpdate = true; }
-  renderer.shadowMap.needsUpdate = true; cullWas = true; invalidate();
+  renderer.shadowMap.needsUpdate = true; invalidate();
 }
 // resolução automática: se o quadro passa de ~26 ms por 1,5 s, baixa o pixel ratio em passos de 0,25; se sobra folga, volta a subir
 const AR = { ema: 16.7, lastT: 0, cool: 0 };
@@ -2467,23 +2591,7 @@ function autoRes(now, continuous) {
   else if (AR.ema < 15.5 && Q.dpr < Q.dprMax) { Q.dpr = Math.min(Q.dprMax, Q.dpr + 0.25); applyDpr(); AR.cool = now + 4000; AR.ema = 16.7; }
 }
 
-/* ---------- (5) luzes por proximidade (só no modo caminhar) ---------- */
-let cullT = 0, cullWas = false;
-function cullLights(now) {
-  const walking = mode === 'walk';
-  if (!walking && !cullWas) return;
-  if (walking && now - cullT < 250) return;
-  cullT = now; let changed = false;
-  for (const L of LIGHTS) {
-    let near = true;
-    if (walking && Number.isFinite(Q.cull)) near = Math.hypot(L.pos.x + CX - walker.x, L.pos.z + CZ - walker.y) < Q.cull + (L.near === false ? -1.5 : 1.5); // histerese
-    if (L.near !== near) { L.near = near; changed = true; }
-  }
-  cullWas = walking;
-  if (changed) applyLights();
-}
-
-/* ---------- (6) painel de diagnóstico (opcional; sem custo quando desligado) ---------- */
+/* ---------- (5) painel de diagnóstico (opcional; sem custo quando desligado) ---------- */
 const DIAG = { on: false, el: null, frames: 0, ms: 0, t0: 0 };
 function diagToggle(on) {
   DIAG.on = on; invalidate();
@@ -2524,19 +2632,23 @@ const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const ease = t => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 let last = performance.now();
 hint.innerHTML = HINTS.orbit;
-document.getElementById('loading').remove();
+// a tela de carregamento sai só depois do primeiro quadro (que compila os shaders da
+// iluminação); até lá ela avisa o que está acontecendo
+const loadingEl = document.getElementById('loading');
+if (loadingEl) loadingEl.textContent = 'compilando a iluminação…';
 { // cor do carro (nomes de pintura da SW4 no Brasil)
   const sel = document.getElementById('car-color');
   for (const n of Object.keys(SW4_COLORS)) sel.add(new Option(n, n));
   sel.value = carColorName; sel.addEventListener('change', () => setCarColor(sel.value));
 }
-if (location.hostname === 'localhost') window.__dbg = { camera, controls, scene, renderer, LIGHTS, obstacles, walker, doors, setMode, PERF, Q, setQuality, MERGE_STATS, frame, invalidate, loadMs: performance.now() };
+if (location.hostname === 'localhost') window.__dbg = { camera, controls, scene, renderer, LIGHTS, obstacles, walker, doors, setMode, PERF, Q, setQuality, MERGE_STATS, frame, invalidate, updateLightSet, followLights, loadMs: performance.now() };
 const animating = () => {
   for (const d of doors) if (Math.abs(d.target - d.t) > 1e-4 || Math.abs(d.v) > 1e-4) return true;
   return Math.abs(gate.target - gate.t) > 1e-4 || Math.abs(gate.v) > 1e-4;
 };
 function frame(now) {
   const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  followLights(now);
   let active = false;
   if (mode === 'walk') { stepWalk(dt); active = true; }
   else {
@@ -2548,7 +2660,6 @@ function frame(now) {
     }
     if (controls.update()) active = true;
   }
-  cullLights(now);
   const moving = animating();
   for (const d of doors) animateDoor(d, dt);
   animateGate(dt);
@@ -2560,6 +2671,7 @@ function frame(now) {
   const t0 = DIAG.on ? performance.now() : 0;
   renderer.render(scene, camera);
   labelRenderer.render(scene, camera);
+  if (loadingEl.isConnected) loadingEl.remove();   // primeiro quadro desenhado
   if (DIAG.on) { DIAG.ms += performance.now() - t0; DIAG.frames++; }
   diagUpdate(now);
 }

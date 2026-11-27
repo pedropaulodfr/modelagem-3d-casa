@@ -34,14 +34,53 @@ a primeira abertura demora um pouco mais em conexões lentas.
   iluminância por cômodo comparada à referência de projeto.
 - **Cômodos**: lista com as áreas de cada ambiente e o total.
 - **Desempenho**: perfis de qualidade, resolução automática e diagnóstico (F3).
-- Tema claro e escuro automáticos, layout responsivo (painel vira folha inferior
-  no celular).
+- **Painel recolhível**: o botão `Minimizar` no cabeçalho (ou a tecla **M**) reduz os
+  controles a uma pílula no canto, liberando a cena; o estado fica lembrado entre
+  visitas. O cabeçalho é fixo, então o botão continua à mão com o painel rolado.
+- Tema claro e escuro automáticos, layout responsivo (painel vira folha inferior no
+  celular).
+
+## Iluminação e desempenho
+
+A cena tem 44 luminárias, mas **18 delas entram no shader por vez**: 14 spots + 4 pontos
+(`SPOT_SLOTS` / `POINT_SLOTS` em `casa-3d.html`). A razão é medida: no three.js, mudar a
+*quantidade* de luzes visíveis recompila o shader de todos os materiais, e numa GPU
+integrada (testado num Vega 8) isso custa segundos por luz — 43 luzes levavam **mais de 3
+minutos** de aba travada. Antes, o modo caminhar ligava e desligava luzes por proximidade a
+cada passo, disparando essa recompilação sem parar; era esse o travamento.
+
+O que ocupa as vagas:
+
+- **modo caminhar**: as 14 luzes mais próximas de quem anda, então todas as luminárias do
+  ambiente em que você está acendem — inclusive os spots de leitura dos quartos e as
+  arandelas da fachada quando você está na frente da casa;
+- **visão geral (3D/Planta)**: a maior luminária de cada ambiente, cobrindo a casa;
+- as 4 luzes de ponto são fixas (arandelas da suíte e balizadores da garagem).
+
+Regras que mantêm o navegador livre (não desfaça sem medir):
+
+- a **quantidade** de luzes visíveis é constante; andar, acender, apagar, trocar de cena ou
+  de modo só troca *quem* ocupa as vagas e mexe em intensidade — nada recompila;
+- as luminárias não projetam sombra na GPU (só o sol projeta);
+- as duas luzes retangulares dos espelhos ficam fora do shader (só elas custavam ~25 s de
+  compilação); os plafons dos banheiros cuidam da luz local;
+- o custo foi movido para o carregamento: "compilando a iluminação…" na primeira abertura
+  (~47 s num Vega 8) e ~9 s depois, com o cache do driver.
+
+Ferramentas de verificação em `.qa/`: `node .qa/server.mjs` sobe o app em
+`http://localhost:8137` e `node .qa/probe.mjs` abre o Edge via CDP, troca horário, entra no
+modo caminhar e mede recompilações, travamentos (long tasks) e intervalos de quadro.
+`SHOTS=1 node .qa/probe.mjs` salva capturas em `.qa/shots/`. Para o painel recolhível,
+`node .qa/panel-check.mjs` mede o botão e o estado minimizado em 360×640 e 1280×800,
+confere persistência, atalho M e sobreposição com o D-pad, e grava as capturas em
+`.qa/shots/panel/`.
 
 ## Estrutura
 
 ```
 casa-3d.html         # aplicação completa (HTML + CSS + JS, arquivo único)
 deploy/j4-core/      # publicação no servidor J4 Core (Termux + Cloudflare Tunnel)
+.qa/                 # servidor estático + teste automatizado (CDP) e capturas de tela
 ```
 
 ## Tecnologia

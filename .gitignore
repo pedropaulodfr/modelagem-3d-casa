@@ -14,3 +14,7 @@ tools/
 skp_extract/
 .claude/
 node_modules/
+
+# Testes automatizados: capturas e logs gerados localmente (.qa/)
+.qa/shots/
+.qa/*.log
