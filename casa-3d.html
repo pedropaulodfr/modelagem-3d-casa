@@ -285,17 +285,17 @@ const DOORS = [
 ];
 
 const ROOMS = [
-  { n:'Quarto 02',   a:12.09, f:'wood',  r:[[0.13,0.13,4.16,3.131]] },
-  { n:'Quarto 01',   a:9.00,  f:'wood',  r:[[0.13,3.261,3.13,6.261]] },
-  { n:'BWC social',  a:3.90,  f:'wet',   r:[[0.13,6.391,3.13,7.691]] },
-  { n:'BWC suíte',   a:3.90,  f:'wet',   r:[[0.13,7.821,3.13,9.121]] },
-  { n:'Suíte',       a:12.09, f:'wood',  r:[[0.13,9.251,4.16,12.251]] },
-  { n:'Cozinha',     a:15.80, f:'tile',  r:[[3.26,5.121,7.24,9.121],[3.26,3.261,5.18,5.121]], c:[5.2,7.0] },
-  { n:'Despensa',    a:2.12,  f:'tile',  r:[[5.31,3.891,7.24,4.991]] },
-  { n:'A. Serviço',  a:2.32,  f:'wet',   r:[[5.31,2.561,7.24,3.761]] },
-  { n:'Sala de estar/jantar', a:13.62, f:'porc', r:[[4.29,9.251,7.24,13.821],[4.29,9.121,7.24,9.251]], c:[5.76,11.6] },
-  { n:'Varanda',     a:6.33,  f:'slate', r:[[0.13,12.381,4.16,13.951]] },
-  { n:'Garagem',     a:null,  f:'conc',  r:[[0,13.951,4.16,18.451]], outdoor:true, c:[2.08,16.2] },
+  { n:'Quarto 02',   a:12.09, p:14.06, f:'wood',  r:[[0.13,0.13,4.16,3.131]] },
+  { n:'Quarto 01',   a:9.00,  p:12.00, f:'wood',  r:[[0.13,3.261,3.13,6.261]] },
+  { n:'BWC social',  a:3.90,  p:8.60,  f:'wet',   r:[[0.13,6.391,3.13,7.691]] },
+  { n:'BWC suíte',   a:3.90,  p:8.60,  f:'wet',   r:[[0.13,7.821,3.13,9.121]] },
+  { n:'Suíte',       a:12.09, p:14.06, f:'wood',  r:[[0.13,9.251,4.16,12.251]] },
+  { n:'Cozinha',     a:15.80, p:19.68, f:'tile',  r:[[3.26,5.121,7.24,9.121],[3.26,3.261,5.18,5.121]], c:[5.2,7.0] },
+  { n:'Despensa',    a:2.12,  p:6.06,  f:'tile',  r:[[5.31,3.891,7.24,4.991]] },
+  { n:'A. Serviço',  a:2.32,  p:6.26,  f:'wet',   r:[[5.31,2.561,7.24,3.761]] },
+  { n:'Sala de estar/jantar', a:13.62, p:15.30, f:'porc', r:[[4.29,9.251,7.24,13.821],[4.29,9.121,7.24,9.251]], c:[5.76,11.6] },
+  { n:'Varanda',     a:6.33,  p:11.20, f:'slate', r:[[0.13,12.381,4.16,13.951]] },
+  { n:'Garagem',     a:null,  p:17.32, f:'conc',  r:[[0,13.951,4.16,18.451]], outdoor:true, c:[2.08,16.2] },
 ];
 const AREA_TOTAL = 94.42;
 
@@ -1749,6 +1749,9 @@ function stepWalk(dt) {
    (1) cor e fotometria · (2) luminárias · (3) plano de luz por cômodo
    (4) gerenciador · (5) luz natural · (6) controles
    A página é um único arquivo HTML, então os "módulos" são seções.
+   NBR 5410 9.5.2.1.1: cada cômodo/dependência deve ter pelo menos um ponto de luz fixo no teto,
+   comandado por interruptor (nos casos permitidos, ponto na parede). Os pontos de luz existem em
+   todos os ambientes; interruptores e fiação de comando NÃO são modelados nesta maquete.
    ===================================================================== */
 
 /* ---------- (1) cor e fotometria ---------- */
@@ -2605,21 +2608,40 @@ collectEnvMats(); setEnvFactor(DAY[LSTATE.day].env); applyLights();
 
 
 /* =====================================================================
-   TOMADAS ELÉTRICAS: padrão brasileiro (ABNT NBR 14136, 2P+T de 10 A e de 20 A) e critérios da ABNT NBR 5410:2004
-   Fonte lida: NBR 5410:2004, cláusulas 4.2.1.2.3, 5.1.3.2.2, 6.5.3.1, 9.1.2.1, 9.1.4.3, 9.5.2.2 e 9.5.3.
-   O que a norma define e foi aplicado aqui:
-     · 9.5.2.2.1 (quantidade mínima): banheiro, 1 junto ao lavatório; cozinha, copa, área de serviço e lavanderia, 1 para cada 3,5 m
-       ou fração de perímetro, e no mínimo 2 acima da bancada da pia; varanda, 1; sala e dormitório, 1 para cada 5 m ou fração de
-       perímetro, bem distribuídos; demais cômodos, 1 (até 6 m²) ou 1 para cada 5 m ou fração (acima de 6 m²);
-     · 9.5.2.2.2 (potência mínima por ponto): 600 VA nos molhados (3 pontos, ou 2 quando o conjunto passa de 6), 100 VA nos demais;
-     · 4.2.1.2.3 d (ponto de uso específico a no máximo 1,5 m do equipamento) e 9.5.3.1 (equipamento acima de 10 A, circuito próprio);
-     · 9.1 (banheiro): nenhuma tomada nos volumes 0, 1 e 2 (box + 0,60 m + 0,60 m); só no volume 3, com DR de 30 mA;
-     · 5.1.3.2.2: DR de 30 mA nos circuitos de banheiro, cozinha, área de serviço, garagem e tomadas externas;
-     · 6.5.3.1: todas as tomadas com contato de aterramento (2P+T), conforme NBR 14136.
-   A norma NÃO fixa alturas das tomadas. As alturas abaixo são usuais (baixa 0,30 · cabeceira 0,55 · bancada 0,90–1,10 · TV 1,25 ·
-   coifa 2,05 m) e são só representação.
-   A modelagem 3D não define circuitos, bitolas nem disjuntores e não substitui o projeto de um profissional habilitado.
-   Configuração centralizada em OUTLETS: para mover, trocar de tipo ou remover um ponto, basta editar a lista.
+   TOMADAS ELÉTRICAS: padrão brasileiro (ABNT NBR 14136:2012, 2P+T de 10 A e de 20 A)
+   e critérios da ABNT NBR 5410:2004 (texto conferido no PDF de referência do projeto).
+   O que foi aplicado (e o que a maquete NÃO representa):
+     · 9.5.2.2.1 quantidade mínima: banheiro, 1 junto ao lavatório (9.1); cozinha, copa, área de
+       serviço e lavanderia, 1 ponto para cada 3,5 m ou fração de perímetro, com no mínimo 2 tomadas
+       acima da bancada da pia; varanda, 1; sala e dormitório, 1 ponto para cada 5 m ou fração de
+       perímetro; demais cômodos: 1 se área <= 2,25 m² (pode ficar a <= 0,80 m da porta, do lado de
+       fora), 1 se <= 6 m², e 1 para cada 5 m ou fração se > 6 m²;
+     · 9.5.2.2.2 potência mínima: 600 VA por ponto até 3 pontos nos molhados, considerando cada
+       ambiente separadamente; com mais de 6 pontos no conjunto desses ambientes, admite-se 600 VA
+       até 2 pontos por ambiente e 100 VA nos excedentes; 100 VA nos demais cômodos;
+     · 4.2.1.2.3 c/d/e: ponto de uso específico (TUE) com a potência do equipamento, localizado a
+       no máximo 1,5 m do equipamento; ponto para vários equipamentos com a quantidade adequada de tomadas;
+     · 9.5.3.1: equipamento com corrente nominal acima de 10 A em circuito independente (por isso a
+       tomada de 20 A marcada como TUE); 9.5.3.2: tomadas de cozinha/área de serviço em circuitos
+       exclusivos (não representados na maquete, que não modela quadros nem circuitos);
+     · 9.1.2.1 e 9.1.4.3: banheiro dividido em volumes 0, 1, 2 e 3; nenhum dispositivo nos volumes
+       0, 1 e 2; tomadas só no volume 3 e protegidas por DR de 30 mA (9.1.4.3.2 c); nenhum interruptor
+       ou tomada a menos de 0,60 m da porta aberta de cabine de banho pré-fabricada (9.1.4.3.3);
+     · 5.1.3.2.2: DR de 30 mA obrigatório nos circuitos de banheiro, cozinha, área de serviço,
+       garagem e tomadas em áreas externas (e internas que possam alimentar equipamento no exterior);
+     · 6.5.3.1: todas as tomadas fixas com contato de aterramento (2P+T), conforme NBR 6147/NBR 14136.
+   Padrão NBR 14136 na modelagem: três furos (2P+T), fases a 19 mm entre centros, terra a 3 mm da
+   linha das fases, furo de entrada Ø 4,3 mm (10 A) e Ø 5,0 mm (20 A). A tomada de 20 A aceita plugue
+   de 10 A; a de 10 A não aceita plugue de 20 A (NBR 14136). O Ø 4,0/4,8 mm é o dos PINOS do plugue,
+   não o dos furos da tomada. A superfície protetora é hexagonal (placa 4x2/4x4).
+   A norma NÃO fixa alturas de tomada. As alturas usadas (0,30 baixa · 0,55 cabeceira · 0,90–1,10
+   bancada · 1,25 TV · 2,05 coifa) são usuais e apenas de representação.
+   A maquete não modela circuitos, bitolas, disjuntores, quadro de distribuição, condutores de
+   proteção, aterramento, interruptores nem tomadas de piso; portanto NÃO substitui projeto elétrico
+   de profissional habilitado, nem comprova conformidade da instalação real.
+   Configuração centralizada em OUTLETS: para mover, trocar de tipo ou remover um ponto, basta editar
+   a lista. A conferência de quantidade fica em OUTLET_RULES/outletReport() e o teste automatizado em
+   .qa/outlets-audit.mjs.
    ===================================================================== */
 const OUTLET_KINDS = {
   S10: { w: 0.072, h: 0.114, mods: [[0, 0]], amp: 10, name: '2P+T 10 A (NBR 14136)' },
@@ -2645,61 +2667,63 @@ const OUTLETS = [
   { id: 'ST-MESA', room: 'Suíte', at: [4.16, 10.84], n: [-1, 0], h: 1.05, kind: 'D10', use: 'mesa de trabalho (notebook e carregadores)' },
   { id: 'ST-TV', room: 'Suíte', at: [4.16, 9.75], n: [-1, 0], h: 1.25, kind: 'S10', use: 'televisão (parede oposta à cama)' },
   { id: 'ST-GER', room: 'Suíte', at: [3.4, 12.251], n: [0, -1], h: 0.30, kind: 'S10', use: 'uso geral, limpeza' },
-  // Banheiros (longe do box e fora da zona do chuveiro; ao lado do lavatório)
-  { id: 'BS-LAV', room: 'BWC social', at: [2.65, 7.691], n: [0, -1], h: 1.20, kind: 'S10', use: 'secador e barbeador, ao lado do lavatório' },
+  // Banheiros (longe do box e fora da zona do chuveiro; ao lado do lavatório).
+  // No BWC social a porta abre contra a parede sul; o ponto fica entre o lavatório e a folha aberta.
+  { id: 'BS-LAV', room: 'BWC social', at: [2.45, 7.691], n: [0, -1], h: 1.20, kind: 'S10', use: 'secador e barbeador, ao lado do lavatório' },
   { id: 'BE-LAV', room: 'BWC suíte', at: [2.65, 7.821], n: [0, 1], h: 1.20, kind: 'S10', use: 'secador e barbeador, ao lado do lavatório' },
   // Cozinha
   { id: 'CZ-GELADEIRA', room: 'Cozinha', at: [7.24, 5.32], n: [-1, 0], h: 0.30, kind: 'S10', use: 'geladeira (ponto próprio, ao lado)' },
-  { id: 'CZ-BANCADA', room: 'Cozinha', at: [7.24, 6.335], n: [-1, 0], h: 1.10, kind: 'D10', use: '2 tomadas para a bancada da pia (a janela ocupa a parede acima da cuba: ponto no limite da bancada)' },
+  { id: 'CZ-BANCADA', room: 'Cozinha', at: [7.24, 7.0], n: [-1, 0], h: 1.02, kind: 'D10', use: '2 tomadas acima da bancada da pia (parede sob o peitoril da janela da cuba)' },
   { id: 'CZ-GER-2', room: 'Cozinha', at: [6.0, 5.121], n: [0, 1], h: 1.10, kind: 'S10', use: 'uso geral (liquidificador, fritadeira elétrica)' },
   { id: 'CZ-COIFA', room: 'Cozinha', at: [7.24, 8.15], n: [-1, 0], h: 2.05, kind: 'S10', use: 'depurador, acima do fogão' },
-  { id: 'CZ-AMERICANA', room: 'Cozinha', at: [6.9, 9.121], n: [0, -1], h: 0.88, kind: 'S20', tue: true, use: 'micro-ondas ou forno elétrico (acima de 10 A: tomada de 20 A e circuito próprio, NBR 5410 9.5.3.1)' },
+  { id: 'CZ-AMERICANA', room: 'Cozinha', at: [7.24, 8.93], n: [-1, 0], h: 1.10, kind: 'S20', tue: true, use: 'micro-ondas ou forno elétrico no balcão (TUE, tomada de 20 A, circuito independente; a <= 1,5 m do equipamento)' },
   { id: 'CZ-GER', room: 'Cozinha', at: [3.26, 8.4], n: [1, 0], h: 0.30, kind: 'S10', use: 'uso geral, limpeza' },
-  // Sala
-  { id: 'SL-TV', room: 'Sala', at: [4.29, 11.05], n: [1, 0], h: 1.25, kind: 'S10', use: 'televisão' },
-  { id: 'SL-RACK', room: 'Sala', at: [4.29, 10.40], n: [1, 0], h: 0.30, kind: 'D10', use: 'rack: decodificador e som' },
-  { id: 'SL-REDE', room: 'Sala', at: [4.29, 9.70], n: [1, 0], h: 0.30, kind: 'S10', use: 'roteador e equipamentos de rede' },
-  { id: 'SL-SOFA', room: 'Sala', at: [7.24, 13.72], n: [-1, 0], h: 0.45, kind: 'S10', use: 'carregador ao lado do sofá' },
-  { id: 'SL-GER', room: 'Sala', at: [4.7, 13.821], n: [0, -1], h: 0.30, kind: 'S10', use: 'aspirador de pó' },
-  { id: 'SJ-GER', room: 'Sala de jantar', at: [7.24, 9.6], n: [-1, 0], h: 0.30, kind: 'S10', use: 'uso geral, equipamentos temporários' },
-  // Área de serviço
-  { id: 'AS-MAQUINA', room: 'Área de serviço', at: [7.24, 3.0], n: [-1, 0], h: 1.10, kind: 'S10', use: 'máquina de lavar' },
-  { id: 'AS-FERRO', room: 'Área de serviço', at: [5.31, 3.3], n: [1, 0], h: 1.10, kind: 'S10', use: 'ferro de passar e uso geral' },
-  // Despensa (2,12 m²: 1 ponto) e circulação
-  { id: 'DS-GER', room: 'Despensa', at: [7.24, 4.4], n: [-1, 0], h: 0.30, kind: 'S10', use: 'freezer ou uso geral (1 ponto, área até 2,25 m²)' },
-  { id: 'CR-GER', room: 'Circulação', at: [3.26, 4.3], n: [1, 0], h: 0.30, kind: 'S10', use: 'limpeza do corredor' },
-  // Varanda e garagem (cobertas, mas expostas à umidade: modelo com tampa)
+  // Sala de estar/jantar (ambiente único na planta)
+  { id: 'SL-TV', room: 'Sala de estar/jantar', at: [4.29, 11.05], n: [1, 0], h: 1.25, kind: 'S10', use: 'televisão' },
+  { id: 'SL-RACK', room: 'Sala de estar/jantar', at: [4.29, 10.40], n: [1, 0], h: 0.30, kind: 'D10', use: 'rack: decodificador e som' },
+  { id: 'SL-REDE', room: 'Sala de estar/jantar', at: [4.29, 9.70], n: [1, 0], h: 0.30, kind: 'S10', use: 'roteador e equipamentos de rede' },
+  { id: 'SL-SOFA', room: 'Sala de estar/jantar', at: [7.24, 13.72], n: [-1, 0], h: 0.45, kind: 'S10', use: 'carregador ao lado do sofá' },
+  { id: 'SL-GER', room: 'Sala de estar/jantar', at: [4.7, 13.821], n: [0, -1], h: 0.30, kind: 'S10', use: 'aspirador de pó' },
+  { id: 'SJ-GER', room: 'Sala de estar/jantar', at: [7.24, 9.6], n: [-1, 0], h: 0.30, kind: 'S10', use: 'uso geral, equipamentos temporários' },
+  // Área de serviço (nome igual ao de ROOMS)
+  { id: 'AS-MAQUINA', room: 'A. Serviço', at: [7.24, 3.0], n: [-1, 0], h: 1.10, kind: 'S10', use: 'máquina de lavar' },
+  { id: 'AS-FERRO', room: 'A. Serviço', at: [5.31, 3.3], n: [1, 0], h: 1.10, kind: 'S10', use: 'ferro de passar e uso geral' },
+  // Despensa (2,12 m²: 1 ponto) e passagem da cozinha
+  { id: 'DS-GER', room: 'Despensa', at: [7.24, 4.4], n: [-1, 0], h: 0.30, kind: 'S10', use: 'freezer ou uso geral (1 ponto, área <= 2,25 m²)' },
+  { id: 'CR-GER', room: 'Cozinha', at: [3.26, 4.3], n: [1, 0], h: 0.30, kind: 'S10', use: 'passagem para os quartos, limpeza' },
+  // Varanda (coberta) e garagem (vaga descoberta): modelo com tampa, DR de 30 mA
   { id: 'VR-LUZ', room: 'Varanda', at: [2.17, 12.381], n: [0, 1], h: 0.45, kind: 'EXT', use: 'abajur e carregador, entre as poltronas' },
-  { id: 'GR-GER', room: 'Garagem', at: [4.75, 13.951], n: [0, 1], h: 0.60, kind: 'EXT', use: 'limpeza do carro e ferramentas' },
+  // a vaga é descoberta e não tem parede própria: o ponto fica na fachada, junto à vaga
+  { id: 'GR-GER', room: 'Garagem', at: [4.75, 13.951], n: [0, 1], h: 0.60, kind: 'EXT', use: 'limpeza do carro e ferramentas (fachada, junto à vaga)' },
 ];
 // metadados derivados das regras da NBR 5410 (potência mínima atribuível por ponto e proteção por DR)
 {
-  const WET = new Set(['BWC social', 'BWC suíte', 'Cozinha', 'Área de serviço']), DR = new Set([...WET, 'Garagem', 'Varanda']), cnt = {};
-  const totalWet = OUTLETS.filter(o => WET.has(o.room)).length, lim = totalWet > 6 ? 2 : 3;
+  const WET = new Set(['BWC social', 'BWC suíte', 'Cozinha', 'A. Serviço']), DR = new Set([...WET, 'Garagem', 'Varanda']), cnt = {};
+  const totalWet = OUTLETS.filter(o => WET.has(o.room)).length, lim = totalWet > 6 ? 2 : 3;   // 9.5.2.2.2-a: conjunto > 6 pontos => 600 VA até 2 pontos, por ambiente
   for (const o of OUTLETS) {
     o.dr = DR.has(o.room);                                              // 5.1.3.2.2: DR de 30 mA no circuito
     if (o.tue) { o.va = null; continue; }                               // ponto de uso específico: potência do equipamento (4.2.1.2.3 c)
     if (WET.has(o.room)) { cnt[o.room] = (cnt[o.room] || 0) + 1; o.va = cnt[o.room] <= lim ? 600 : 100; } else o.va = 100;   // 9.5.2.2.2
   }
 }
-// conferência da quantidade mínima por ambiente (9.5.2.2.1); perímetros e áreas tirados da planta
-const OUTLET_RULES = [
-  { room: 'Quarto 02', rule: 'dormitório: 1 por 5 m ou fração (perímetro 14,06 m)', min: 3 },
-  { room: 'Quarto 01', rule: 'dormitório: 1 por 5 m ou fração (perímetro 12,0 m)', min: 3 },
-  { room: 'Suíte', rule: 'dormitório: 1 por 5 m ou fração (perímetro 14,06 m)', min: 3 },
-  { room: 'BWC social', rule: 'banheiro: 1 junto ao lavatório', min: 1 },
-  { room: 'BWC suíte', rule: 'banheiro: 1 junto ao lavatório', min: 1 },
-  { room: 'Cozinha', rule: 'cozinha: 1 por 3,5 m ou fração (perímetro 19,68 m) + 2 acima da bancada da pia', min: 6 },
-  { room: 'Despensa', rule: 'demais cômodos até 2,25 m²: 1', min: 1 },
-  { room: 'Área de serviço', rule: 'área de serviço: 1 por 3,5 m ou fração (perímetro 6,26 m)', min: 2 },
-  { room: 'Sala', rule: 'sala: 1 por 5 m ou fração (perímetro 15,04 m)', min: 4 },
-  { room: 'Varanda', rule: 'varanda: 1', min: 1 },
-  { room: 'Garagem', rule: 'garagem descoberta, tratada como área externa: sem número mínimo, DR obrigatório', min: 1 },
-];
+// conferência da quantidade mínima por ambiente (9.5.2.2.1); área/perímetro da planta em ROOMS.a / ROOMS.p
+const OUTLET_RULES = ROOMS.map(r => {
+  let min, rule;
+  if (r.n === 'BWC social' || r.n === 'BWC suíte') { min = 1; rule = '9.5.2.2.1-a: banheiro, 1 ponto junto ao lavatório (9.1)'; }
+  else if (r.n === 'Cozinha' || r.n === 'A. Serviço') { min = Math.ceil(r.p / 3.5); rule = `9.5.2.2.1-b: ${r.p} m / 3,5 m => ${min} pontos, com >= 2 tomadas acima da bancada da pia`; }
+  else if (r.n === 'Varanda') { min = 1; rule = '9.5.2.2.1-c: varanda, 1 ponto'; }
+  else if (['Sala de estar/jantar', 'Quarto 01', 'Quarto 02', 'Suíte'].includes(r.n)) { min = Math.ceil(r.p / 5); rule = `9.5.2.2.1-d: ${r.p} m / 5 m => ${min} pontos`; }
+  else if (r.a == null) { min = 0; rule = 'vaga descoberta (área externa): sem mínimo; DR de 30 mA (5.1.3.2.2-d)'; }
+  else if (r.a <= 2.25) { min = 1; rule = '9.5.2.2.1-e: área <= 2,25 m² => 1 ponto (pode ficar a <= 0,80 m da porta)'; }
+  else if (r.a <= 6) { min = 1; rule = '9.5.2.2.1-e: área <= 6 m² => 1 ponto'; }
+  else { min = Math.ceil(r.p / 5); rule = `9.5.2.2.1-e: ${r.p} m / 5 m => ${min} pontos`; }
+  return { room: r.n, rule, min };
+});
 function outletReport() {                                              // console.table(outletReport()) mostra a conferência
   return OUTLET_RULES.map(r => {
-    const got = OUTLETS.filter(o => o.room === r.room || (r.room === 'Sala' && o.room === 'Sala de jantar') || (r.room === 'Cozinha' && o.room === 'Circulação')).length;
-    return { ambiente: r.room, regra: r.rule, minimo: r.min, previstos: got, ok: got >= r.min };
+    const pontos = OUTLETS.filter(o => o.room === r.room).length;
+    const pia = r.room === 'Cozinha' ? OUTLETS.filter(o => o.room === 'Cozinha' && /bancada da pia/i.test(o.use)).reduce((s, o) => s + OUTLET_KINDS[o.kind].mods.length, 0) : null;
+    return { ambiente: r.room, regra: r.rule, minimo: r.min, pontos, ok: pontos >= r.min && (pia == null || pia >= 2), tomadasNaPia: pia };
   });
 }
 const outletGroup = new THREE.Group(); outletGroup.name = 'tomadas'; scene.add(outletGroup);
@@ -2714,6 +2738,12 @@ const outletGroup = new THREE.Group(); outletGroup.name = 'tomadas'; scene.add(o
     g.setAttribute('color', new THREE.BufferAttribute(c, 3)); return g;
   };
   const disc = (r, hgt) => new THREE.CylinderGeometry(r, r, hgt, 14).rotateX(Math.PI / 2);   // eixo em +z
+  const hex = (w, h) => {                                            // hexágono da superfície protetora (NBR 14136)
+    const s = new THREE.Shape(), c = h / 2;
+    s.moveTo(-w / 2, 0); s.lineTo(-w / 2 + c, h / 2); s.lineTo(w / 2 - c, h / 2);
+    s.lineTo(w / 2, 0); s.lineTo(w / 2 - c, -h / 2); s.lineTo(-w / 2 + c, -h / 2); s.closePath();
+    return s;
+  };
   const build = (K) => {
     const T = 0.008, parts = [];
     const shape = rr(K.w, K.h, 0.006);
@@ -2726,15 +2756,20 @@ const outletGroup = new THREE.Group(); outletGroup.name = 'tomadas'; scene.add(o
       parts.push(part(new RoundedBoxGeometry(0.022, 0.008, 0.008, 1, 0.002), OC.lid, 0, -0.03, T + 0.016));
       return parts;
     }
-    const big = K.amp > 10, pr = big ? 0.0024 : 0.002, dx = 0.0095, ey = -0.0165, py = 0.0082;   // NBR 14136: pinos de Ø 4,0 mm (10 A) e Ø 4,8 mm (20 A), fases a 19 mm, terra em triângulo
+    // NBR 14136: furo de entrada da tomada Ø 4,3 mm (10 A) e Ø 5,0 mm (20 A); fases a 19 mm entre centros;
+    // pino terra a 3 mm da linha das fases (o Ø 4,0/4,8 mm é do pino do plugue, não do furo da tomada)
+    const big = K.amp > 10, pr = big ? 0.0025 : 0.00215, dx = 0.0095, ey = 0.003, py = 0;
     for (const [mx, my] of K.mods) {
       parts.push(part(new RoundedBoxGeometry(0.046, 0.049, 0.004, 1, 0.002), OC.face, mx, my, 0.004));      // face do módulo, rebaixada 2 mm
+      const ring = hex(0.037, 0.028); ring.holes.push(new THREE.Path(hex(0.0345, 0.0255).getPoints().reverse()));
+      parts.push(part(new THREE.ExtrudeGeometry(ring, { depth: 0.0007, bevelEnabled: false, curveSegments: 1 }), OC.rim, mx, my, 0.0060)); // superfície protetora hexagonal
       for (const [hx, hy] of [[-dx, py], [dx, py], [0, ey]]) {
-        parts.push(part(disc(pr + 0.0013, 0.0006), OC.rim, mx + hx, my + hy, 0.0063));                       // chanfro do furo
-        parts.push(part(disc(pr, 0.0008), OC.hole, mx + hx, my + hy, 0.0066));                               // furo (pino)
+        parts.push(part(disc(pr + 0.0011, 0.0006), OC.rim, mx + hx, my + hy, 0.0064));                       // chanfro do furo
+        parts.push(part(disc(pr, 0.0008), OC.hole, mx + hx, my + hy, 0.0067));                               // furo (entrada do plugue)
       }
-      parts.push(part(disc(0.0024, 0.001), OC.screw, mx, my + 0.0175, 0.0064));                            // parafuso do módulo
     }
+    // parafuso de fixação na placa, abaixo da janela (fora da face do soquete)
+    parts.push(part(disc(0.0024, 0.001), OC.screw, 0, -K.h / 2 + 0.012, T + 0.0014));
     return parts;
   };
   const MAT = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.55, metalness: 0, envMapIntensity: 0.45, clippingPlanes: clip, clipShadows: true });
