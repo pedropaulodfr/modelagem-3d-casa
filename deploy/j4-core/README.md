@@ -49,6 +49,10 @@ curl -sI https://spaceapps.online/casa-3d/ | grep -i last-modified
 curl -s https://spaceapps.online/casa-3d/ | sha256sum
 ```
 
+Teste ponta a ponta (feito em 26/11/2026): commit + push na `main`, espera de
+até 5 min, `tail ~/deploy/deploy.log` mostrando o commit novo e o
+`last-modified` da URL mudando — sem nenhuma ação no aparelho.
+
 Compare com o `sha256sum casa-3d.html` do repositório: deve bater (tirando a
 diferença de CRLF/LF, se você commitou do Windows).
 
