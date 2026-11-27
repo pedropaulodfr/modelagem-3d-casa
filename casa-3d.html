@@ -37,6 +37,8 @@
 }
 html, body { height: 100%; }
 body { background: var(--bg); color: var(--fg); font-family: var(--font-body); overflow: hidden; }
+/* Sem isto, o display:flex/grid de #hud e #pad vence o [hidden] do HTML e eles nunca somem. */
+[hidden] { display: none !important; }
 #app { position: fixed; inset: 0; }
 #app canvas { display: block; touch-action: none; }
 #labels { position: absolute; inset: 0; pointer-events: none; }
@@ -50,11 +52,19 @@ body { background: var(--bg); color: var(--fg); font-family: var(--font-body); o
   overflow-y: auto; overflow-x: hidden; background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
   backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); box-shadow: 0 6px 24px rgba(0,0,0,0.12);
   display: flex; flex-direction: column; }
-.p-head { padding: 14px 16px 12px; border-bottom: 1px solid var(--line); display: flex; align-items: flex-start; gap: 8px; }
+/* Cabeçalho fixo: o botão de minimizar continua alcançável com o painel rolado. */
+.p-head { position: sticky; top: 0; z-index: 2; padding: 14px 16px 12px; border-bottom: 1px solid var(--line);
+  display: flex; align-items: flex-start; gap: 8px; background: var(--panel);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
 .p-head > div { flex: 1; min-width: 0; }
 h1 { font-family: var(--font-display); font-size: 20px; font-weight: 600; margin: 0; letter-spacing: -0.01em; }
 .meta { font-family: var(--font-mono); font-size: 11px; color: var(--muted); margin-top: 3px; }
-#collapse { display: none; }
+#collapse { flex: none; display: inline-flex; align-items: center; justify-content: center; gap: 5px; margin-top: 1px;
+  min-height: 30px; padding: 6px 9px; font: 500 12px var(--font-body); color: var(--fg);
+  background: var(--chip); border: 1px solid var(--line); border-radius: 6px; cursor: pointer; white-space: nowrap; }
+#collapse:hover { background: var(--line); }
+#collapse svg { width: 13px; height: 13px; flex: none; transition: transform .18s ease; }
+#panel.min #collapse svg { transform: rotate(180deg); }
 .sec { padding: 12px 16px; border-bottom: 1px solid var(--line); display: flex; flex-direction: column; gap: 8px; }
 .sec:last-child { border-bottom: 0; }
 .sec-t { font-size: 10.5px; font-weight: 600; letter-spacing: 0.09em; text-transform: uppercase; color: var(--muted); }
@@ -77,6 +87,14 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); ou
 .rooms li.total button:hover { background: none; }
 .hint { font-size: 11.5px; color: var(--muted); line-height: 1.45; margin: 0; }
 .hint kbd { font-family: var(--font-mono); font-size: 10.5px; padding: 0 4px; border: 1px solid var(--line); border-radius: 3px; background: var(--chip); }
+
+/* Painel minimizado: sobra só o cabeçalho, que encolhe para uma pílula no canto. */
+#panel.min { width: auto; max-height: none; overflow: visible; }
+#panel.min .p-head { padding: 8px 9px 8px 13px; border-bottom: 0; align-items: center; gap: 9px; }
+#panel.min .p-head .meta { display: none; }
+#panel.min h1 { font-size: 16px; }
+#panel.min #collapse { padding: 6px 8px; gap: 4px; }
+#panel.min #panel-body { display: none; }
 
 #hud { position: fixed; z-index: 4; top: calc(12px + env(safe-area-inset-top, 0px)); right: max(12px, env(safe-area-inset-right, 0px));
   background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; font-size: 13px; display: flex; gap: 10px; align-items: center; }
@@ -108,10 +126,13 @@ details.dims summary { cursor: pointer; font-size: 12.5px; color: var(--muted); 
 @media (max-width: 720px) {
   #panel { top: auto; bottom: calc(10px + env(safe-area-inset-bottom, 0px)); left: max(10px, env(safe-area-inset-left, 0px));
     right: max(10px, env(safe-area-inset-right, 0px)); width: auto; max-height: 52%; }
-  #collapse { display: inline-flex; background: var(--chip); color: var(--fg); border: 1px solid var(--line); border-radius: 6px;
-    font: 500 12px var(--font-body); padding: 5px 9px; cursor: pointer; }
-  #panel.min .sec { display: none; }
+  /* Minimizado no celular: encosta embaixo à esquerda em vez de ocupar a largura toda. */
+  #panel.min { right: auto; max-width: calc(100% - 20px); }
+  #panel.min ~ #pad { bottom: calc(16px + env(safe-area-inset-bottom, 0px)); }
+  /* No modo caminhar o D-pad ocupa o canto; acima da folha aberta e da pílula minimizada. */
   #pad { bottom: calc(76px + env(safe-area-inset-bottom, 0px)); }
+  body.walking #panel:not(.min) ~ #pad { bottom: calc(52% + 16px + env(safe-area-inset-bottom, 0px)); }
+  body.walking #panel.min { bottom: calc(120px + env(safe-area-inset-bottom, 0px)); }
 }
 @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
 </style>
@@ -125,8 +146,13 @@ details.dims summary { cursor: pointer; font-size: 12.5px; color: var(--muted); 
       <h1>Casa 3D</h1>
       <div class="meta">planta baixa · esc. 1:75 · 7,37 × 18,45 m</div>
     </div>
-    <button id="collapse" type="button" aria-expanded="true">Ocultar</button>
+    <button id="collapse" type="button" aria-expanded="true" aria-controls="panel-body" aria-label="Minimizar controles" title="Minimizar controles (M)">
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 15l6-6 6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span id="collapse-label">Minimizar</span>
+    </button>
   </div>
+
+  <div id="panel-body">
 
   <div class="sec">
     <div class="sec-t">Visualização</div>
@@ -204,7 +230,13 @@ details.dims summary { cursor: pointer; font-size: 12.5px; color: var(--muted); 
   <div class="sec">
     <p class="hint" id="hint"></p>
   </div>
+  </div>
 </aside>
+
+<script>
+/* Restaura o painel minimizado antes da primeira pintura, para não piscar aberto. */
+try { if (localStorage.getItem('casa3d:painel-min') === '1') document.getElementById('panel').classList.add('min'); } catch (e) {}
+</script>
 
 <div id="hud" hidden><span>Você está em: <b id="hud-room">—</b></span><button type="button" id="hud-exit">Sair</button></div>
 <div id="pad" hidden>
@@ -1646,7 +1678,7 @@ function focusRoom(room) {
 let mode = 'orbit';
 const hint = document.getElementById('hint');
 const HINTS = {
-  orbit: 'Arraste para girar, <kbd>botão direito</kbd> ou dois dedos para mover, roda ou pinça para aproximar. Clique num cômodo da lista para ir até ele.',
+  orbit: 'Arraste para girar, <kbd>botão direito</kbd> ou dois dedos para mover, roda ou pinça para aproximar. Clique num cômodo da lista para ir até ele. <kbd>M</kbd> minimiza os controles.',
   top: 'Vista de cima, como a planta. Arraste com o <kbd>botão direito</kbd> para mover e use a roda para aproximar.',
   walk: 'Arraste na tela para olhar em volta. Ande com <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> ou as setas (segure <kbd>Shift</kbd> para correr). As portas abrem quando você chega perto. <kbd>Esc</kbd> sai.',
 };
@@ -1663,6 +1695,7 @@ function setMode(m) {
   document.querySelectorAll('.seg button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === m)));
   hint.innerHTML = HINTS[m];
   const walking = m === 'walk';
+  document.body.classList.toggle('walking', walking);
   document.getElementById('hud').hidden = !walking;
   document.getElementById('pad').hidden = !walking || !matchMedia('(pointer: coarse)').matches;
   ceilGroup.visible = walking;
@@ -1699,11 +1732,25 @@ tDoors.addEventListener('change', applyDoorTargets);
 tPlan.addEventListener('change', () => planPlane.visible = tPlan.checked);
 function applyDoorTargets() { if (mode !== 'walk') doors.forEach(d => d.target = tDoors.checked ? 1 : 0); }
 
-// Painel recolhível (celular)
-const panel = document.getElementById('panel'), collapseBtn = document.getElementById('collapse');
-collapseBtn.addEventListener('click', () => {
-  const min = panel.classList.toggle('min');
-  collapseBtn.textContent = min ? 'Mostrar' : 'Ocultar'; collapseBtn.setAttribute('aria-expanded', String(!min));
+// Painel recolhível (desktop e celular): botão no cabeçalho, atalho M e estado lembrado.
+const panel = document.getElementById('panel'), collapseBtn = document.getElementById('collapse'), collapseLabel = document.getElementById('collapse-label');
+const PANEL_KEY = 'casa3d:painel-min';
+function setPanelMin(min, persist = true) {
+  panel.classList.toggle('min', min);
+  collapseBtn.setAttribute('aria-expanded', String(!min));
+  collapseBtn.title = min ? 'Expandir controles (M)' : 'Minimizar controles (M)';
+  collapseBtn.setAttribute('aria-label', collapseBtn.title);
+  collapseLabel.textContent = min ? 'Expandir' : 'Minimizar';
+  if (min) panel.scrollTop = 0;
+  if (persist) { try { localStorage.setItem(PANEL_KEY, min ? '1' : '0'); } catch (e) {} }
+}
+setPanelMin(panel.classList.contains('min'), false);   // o estado salvo já foi aplicado antes da pintura
+collapseBtn.addEventListener('click', () => setPanelMin(!panel.classList.contains('min')));
+addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey || e.altKey || e.repeat) return;
+  const t = e.target;
+  if (t && (t.isContentEditable || /^(INPUT|SELECT|TEXTAREA)$/.test(t.tagName))) return;
+  if (e.key === 'm' || e.key === 'M') { e.preventDefault(); setPanelMin(!panel.classList.contains('min')); }
 });
 
 /* --------------------------- Modo caminhar -------------------------- */

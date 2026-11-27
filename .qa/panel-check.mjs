@@ -22,13 +22,16 @@ const edge = spawn(EDGE, [
   '--disable-dev-shm-usage', 'about:blank',
 ], { stdio: 'ignore', windowsHide: true });
 
-// Bloqueia requestAnimationFrame antes de qualquer script da página: o loop do three.js
-// nunca dispara sozinho, então nada de compilar shader no meio das medidas.
+// Segura o requestAnimationFrame antes de qualquer script da página: o loop do three.js
+// fica em fila e nada compila shader durante as medidas. `__startFrames()` libera a fila
+// depois, para as capturas com a cena (o app não expõe o renderer para desenhar à mão).
 const RAF_HOLD = `(() => {
-  window.__raf = window.requestAnimationFrame.bind(window);
-  window.__rafIds = 0;
-  window.requestAnimationFrame = () => 0;
+  const raf = window.requestAnimationFrame.bind(window);
+  const caf = window.cancelAnimationFrame.bind(window);
+  window.__raf = raf; window.__caf = caf; window.__frames = [];
+  window.requestAnimationFrame = cb => { window.__frames.push(cb); return window.__frames.length; };
   window.cancelAnimationFrame = () => {};
+  window.__startFrames = () => { const q = window.__frames.splice(0); q.forEach(cb => raf(cb)); return q.length; };
 })();`;
 
 async function waitDevtools(timeoutMs = 30000) {
@@ -48,7 +51,7 @@ function connect(url) {
     const failAll = why => { for (const [, p] of pending) p.rej(new Error(why)); pending.clear(); };
     ws.addEventListener('open', () => resolve({
       events,
-      call(method, params = {}, timeoutMs = 90000) {
+      call(method, params = {}, timeoutMs = 300000) {
         return new Promise((res, rej) => {
           const id = ++seq;
           const timer = setTimeout(() => { pending.delete(id); rej(new Error('timeout CDP ' + method)); }, timeoutMs);
@@ -112,7 +115,9 @@ async function main() {
   await cdp.call('Page.addScriptToEvaluateOnNewDocument', { source: RAF_HOLD });
   const errors = [];
 
-  const evalJs = async (expr, timeoutMs = 90000) => {
+  // O app pré-aquece os shaders de Noite e Entardecer no carregamento (render síncrono):
+  // em SwiftShader isso leva minutos, então as esperas são generosas.
+  const evalJs = async (expr, timeoutMs = 300000) => {
     const r = await cdp.call('Runtime.evaluate', { expression: expr, awaitPromise: true, returnByValue: true, userGesture: true }, timeoutMs);
     if (r.exceptionDetails) throw new Error(r.exceptionDetails.exception?.description || r.exceptionDetails.text);
     return r.result.value;
@@ -123,34 +128,31 @@ async function main() {
     writeFileSync(join(OUT, name + '.png'), Buffer.from(r.data, 'base64'));
     console.log('SHOT', join(OUT, name + '.png'));
   };
-  const ready = async (timeoutMs = 240000) => {
+  const ready = async (timeoutMs = 600000) => {
     const t0 = Date.now();
     while (Date.now() - t0 < timeoutMs) {
       const r = await cdp.call('Runtime.evaluate', {
         expression: `({ rs: document.readyState, panel: !!document.getElementById('panel'), dbg: !!window.__dbg })`,
         returnByValue: true,
-      }, 240000);
+      }, 300000);
       if (r.result.value.rs === 'complete' && r.result.value.panel) return r.result.value;
       await sleep(400);
     }
     throw new Error('página não carregou');
-  };  const viewport = (w, h, mobile) => cdp.call('Emulation.setDeviceMetricsOverride', {
+  };
+  const viewport = (w, h, mobile) => cdp.call('Emulation.setDeviceMetricsOverride', {
     width: w, height: h, deviceScaleFactor: mobile ? 2 : 1, mobile, screenWidth: w, screenHeight: h,
   });
-  // um quadro só, sob demanda (o loop está bloqueado); devolve true se desenhou
-  const renderNow = async () => {
-    const ok = await evalJs(`(() => { const D = window.__dbg; if (!D) return false;
-      D.renderer.render(D.scene, D.camera);
-      const l = document.getElementById('loading'); if (l) l.remove();
-      return true; })()`, 300000);
-    if (!ok) console.log('AVISO render: window.__dbg ainda não existe');
-    return ok;
-  };
-  const waitDbg = async (timeoutMs = 240000) => {
+  // Espera a thread principal ficar livre (compilar shader em software bloqueia o evaluate).
+  const waitMainThreadFree = async (timeoutMs = 300000) => {
     const t0 = Date.now();
     while (Date.now() - t0 < timeoutMs) {
-      if (await evalJs('!!window.__dbg', 240000)) return true;
-      await sleep(500);
+      const s = Date.now();
+      try {
+        await cdp.call('Runtime.evaluate', { expression: 'performance.now()', returnByValue: true }, 6000);
+        if (Date.now() - s < 1500) return true;
+      } catch {}
+      await sleep(1000);
     }
     return false;
   };
@@ -172,8 +174,6 @@ async function main() {
   const nav = await cdp.call('Page.navigate', { url: BASE });
   if (nav.errorText) throw new Error('navegação falhou: ' + nav.errorText + ' (o servidor do .qa está no ar?)');
   await ready();
-  await waitDbg();
-  await renderNow();
 
   report.mobileExpanded = await step('celular aberto', async () => {
     const s = await ensure(false); await shot('01-celular-aberto'); return s;
@@ -207,7 +207,6 @@ async function main() {
     await viewport(1280, 800, false);
     await sleep(700);
     await evalJs(`document.body.classList.remove('walking'); document.getElementById('pad').hidden = true; null`);
-    await renderNow();
     const s = await ensure(false); await shot('05-desktop-aberto'); return s;
   });
 
@@ -222,15 +221,27 @@ async function main() {
     const s = await ensure(true); await shot('07-desktop-minimizado'); return s;
   });
 
-  // persistência: recarrega (por último; custa um contexto WebGL novo)
+  // fase visual: libera o loop para desenhar a cena e captura em desktop
+  report.visual = await step('capturas com a cena', async () => {
+    await viewport(1280, 800, false);
+    await ensure(false);
+    const started = await evalJs(`window.__startFrames()`);
+    const livre = await waitMainThreadFree();
+    await sleep(1200);
+    await shot('09-desktop-cena-expandido');
+    await ensure(true);
+    await sleep(600);
+    await shot('10-desktop-cena-minimizado');
+    return { started, livre };
+  });
+
+  // persistência: recarrega (por último; rAF volta travado, então é rápido)
   report.mobileReloaded = await step('persistência após recarregar', async () => {
     await viewport(360, 640, true);
     await sleep(500);
     await cdp.call('Page.reload', { ignoreCache: false });
     await sleep(2500);
     await ready();
-    await waitDbg();
-    await renderNow();
     const s = await probe(); await shot('08-celular-recarregado'); return s;
   });
 
@@ -261,6 +272,7 @@ async function main() {
     ['desktop minimizado: pílula pequena', a.desktopMin && a.desktopMin.panel.h <= 60],
     ['desktop minimizado: corpo oculto', a.desktopMin && a.desktopMin.bodyDisplay === 'none'],
     ['recarregar mantém minimizado', a.mobileReloaded && a.mobileReloaded.min === true && a.mobileReloaded.label === 'Expandir'],
+    ['cena desenhou para as capturas', !!(a.visual && a.visual.livre)],
     ['sem erros de console', !errors.length],
     ['todas as etapas rodaram', failed.length === 0],
   ];
