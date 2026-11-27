@@ -68,6 +68,7 @@ Exponha um gancho **temporário** só em `localhost`: `if (location.hostname ===
 1. Gere `casa_out.html` (`scripts/build.py`).
 2. Abra e confira o checklist.
 3. Publique (se for artefato) e abra o link publicado: o ambiente pode se comportar diferente do preview local (ex.: `fetch`).
+3b. **Hospedagem própria (`index.html` em servidor):** gere com `build.py --standalone`. O modelo-fonte é um fragmento sem `<meta charset>`; sem o cabeçalho o navegador lê UTF-8 como Latin-1 e os acentos aparecem quebrados ("VocÃª estÃ¡"). Incidente real em spaceapps.online/casa-3d.
 4. Mensagem final em linguagem simples: o que foi feito, **onde ficou a hipótese**, o que foi verificado e o que **não** foi, e as limitações conhecidas.
 
 ## Limitações conhecidas do projeto original
