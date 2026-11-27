@@ -25,6 +25,11 @@
 - [ ] F3: chamadas de desenho e triângulos dentro do esperado após a mescla.
 - [ ] Sem travada ao trocar horário; resolução automática funcionando.
 
+**Elétrica**
+- [ ] `node .qa/outlets-audit.mjs` sem falhas: mínimos por ambiente, 2 tomadas acima da pia, volumes de banheiro, TUE, DR, potência e furos NBR 14136.
+- [ ] Close-ups das tomadas: 3 furos 2P+T, fases a 19 mm, terra a 3 mm, furo maior na de 20 A, superfície hexagonal.
+- [ ] Nenhuma tomada atrás de móvel alto, folha de porta, sob tampo de bancada ou dentro de vão de janela.
+
 **Declarações**
 - [ ] Hipóteses listadas (pé-direito, terreno, norte, cobertura, rua, tomadas).
 - [ ] Texto dizendo que **não substitui** projeto estrutural, elétrico, de impermeabilização ou de cobertura.
@@ -48,6 +53,10 @@
 | Testes dando "Internal error"/timeout | aba oculta com compilação pesada | chamadas curtas; aba visível |
 | Script de patch quebrando no shell | texto longo em heredoc | gravar o script em arquivo e executar |
 | Build sobrescreveu o HTML do repositório | `cwd` errado | `build.py` com caminhos absolutos |
+| Tomada atrás da folha da porta | ponto perto da parede para onde a porta abre | deslocar o ponto para a faixa entre o móvel e a folha aberta |
+| Terra desenhado “em triângulo” | confundir o pino do plugue com o furo da tomada | furo 4,3/5,0 mm e terra a 3 mm da linha das fases |
+| Tomada de bancada fora da projeção do tampo | janela ocupa a parede acima da cuba | usar a parede sob o peitoril ou declarar a exceção |
+| TUE sob o tampo do balcão | ponto colocado na face baixa da meia-parede | posicionar acima do tampo e a ≤ 1,5 m do equipamento |
 | Limite de 16 texturas por material | muitas luzes com sombra | reduzir luzes com sombra |
 
 ## Como testar sem a aba em primeiro plano
@@ -59,6 +68,7 @@ Exponha um gancho **temporário** só em `localhost`: `if (location.hostname ===
 1. Gere `casa_out.html` (`scripts/build.py`).
 2. Abra e confira o checklist.
 3. Publique (se for artefato) e abra o link publicado: o ambiente pode se comportar diferente do preview local (ex.: `fetch`).
+3b. **Hospedagem própria (`index.html` em servidor):** gere com `build.py --standalone`. O modelo-fonte é um fragmento sem `<meta charset>`; sem o cabeçalho o navegador lê UTF-8 como Latin-1 e os acentos aparecem quebrados ("VocÃª estÃ¡"). Incidente real em spaceapps.online/casa-3d.
 4. Mensagem final em linguagem simples: o que foi feito, **onde ficou a hipótese**, o que foi verificado e o que **não** foi, e as limitações conhecidas.
 
 ## Limitações conhecidas do projeto original
@@ -67,4 +77,4 @@ Exponha um gancho **temporário** só em `localhost`: `if (location.hostname ===
 - Pintura do carro por região, com bordas irregulares.
 - Colisão dos canteiros do paisagismo não testada andando em todos os pontos.
 - Calhas da cobertura sem caimento modelado; cobertura conceitual.
-- Tomada dupla da bancada da pia no limite do tampo, por causa da janela.
+- Tomadas de bancada: a janela sobre a cuba obriga a usar a parede **sob o peitoril**; se não houver essa faixa, declarar a exceção.

@@ -42,7 +42,7 @@ O projeto original tem uma implementação de referência completa em
 | 8 | Terreno e paisagismo | `references/08-paisagismo.md` | Jardim e vasos, sem inventar o que a planta nega |
 | 9 | Rua e vizinhança | `references/09-rua-e-vizinhanca.md` | Contexto urbano, desligável (padrão: vizinhança desligada) |
 | 10 | Cobertura | `references/10-cobertura.md` | Laje, telhado embutido atrás de platibanda, drenagem |
-| 11 | Tomadas elétricas | `references/11-tomadas-nbr5410.md` | Pontos conforme NBR 5410 e NBR 14136 |
+| 11 | Tomadas elétricas | `references/11-tomadas-nbr5410.md` | Pontos no padrão NBR 14136 e critérios da NBR 5410, com auditoria geométrica (quantidade, volumes de banheiro, TUE, furos) |
 | 12 | Desempenho | `references/12-desempenho.md` | Mescla, sob demanda, perfis de qualidade |
 | 13 | Verificação e entrega | `references/13-verificacao-e-armadilhas.md` | Checklist, erros conhecidos, publicação |
 

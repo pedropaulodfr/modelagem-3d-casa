@@ -32,6 +32,10 @@ a primeira abertura demora um pouco mais em conexões lentas.
 - **Iluminação**: cinco horários do dia (manhã, meio-dia, tarde, entardecer e
   noite), cena, intensidade, temperatura de cor e tipos de luz, com estimativa de
   iluminância por cômodo comparada à referência de projeto.
+- **Tomadas elétricas**: 33 pontos (36 tomadas) 2P+T no padrão NBR 14136, com 10 A e
+  20 A, e quantidade/posição conferidas pelos critérios da NBR 5410 — inclusive as duas
+  tomadas acima da bancada da pia, os volumes dos banheiros e o TUE de 20 A. Ver o
+  [relatório de verificação](RELATORIO-TOMADAS-NBR5410.md).
 - **Cômodos**: lista com as áreas de cada ambiente e o total.
 - **Desempenho**: perfis de qualidade, resolução automática e diagnóstico (F3).
 - **Painel recolhível**: o botão `Minimizar` no cabeçalho (ou a tecla **M**) reduz os
@@ -73,14 +77,28 @@ modo caminhar e mede recompilações, travamentos (long tasks) e intervalos de q
 `SHOTS=1 node .qa/probe.mjs` salva capturas em `.qa/shots/`. Para o painel recolhível,
 `node .qa/panel-check.mjs` mede o botão e o estado minimizado em 360×640 e 1280×800,
 confere persistência, atalho M e sobreposição com o D-pad, e grava as capturas em
-`.qa/shots/panel/`.
+`.qa/shots/panel/`. Para a elétrica, `node .qa/outlets-audit.mjs` confere quantidade,
+posição, vãos, móveis, volumes de banheiro, TUE, DR, potência e a geometria dos furos
+(NBR 5410/NBR 14136), saindo com código 1 se algo não estiver conforme.
+
+## Elétrica (NBR 5410 e NBR 14136)
+
+A maquete representa **33 pontos de tomada 2P+T (36 tomadas)** no padrão NBR 14136, de
+10 A e 20 A, com quantidade e posição conferidas pelos critérios da NBR 5410: mínimos por
+ambiente, duas tomadas acima da bancada da pia, volumes 0 a 3 dos banheiros, DR de 30 mA,
+TUE de 20 A e potência atribuível aos pontos. Interruptores, circuitos, quadro de
+distribuição, condutores, aterramento e tomadas de piso **não** são modelados — a maquete
+não substitui projeto elétrico nem comprova a conformidade de uma instalação real. A
+verificação cláusula a cláusula, com o que foi corrigido, está em
+[RELATORIO-TOMADAS-NBR5410.md](RELATORIO-TOMADAS-NBR5410.md).
 
 ## Estrutura
 
 ```
 casa-3d.html         # aplicação completa (HTML + CSS + JS, arquivo único)
+RELATORIO-TOMADAS-NBR5410.md  # verificação das tomadas contra NBR 5410/NBR 14136
 deploy/j4-core/      # publicação no servidor J4 Core (Termux + Cloudflare Tunnel)
-.qa/                 # servidor estático + teste automatizado (CDP) e capturas de tela
+.qa/                 # servidor estático + testes automatizados (CDP e elétrica)
 ```
 
 ## Tecnologia
