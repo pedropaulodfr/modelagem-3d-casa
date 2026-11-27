@@ -16,49 +16,63 @@ hosts (incluindo `spaceapps.online`) saem de `public/spaceapps/`, exceto quando 
 caminho começa com `/dash`.
 
 Não existe upload, API de deploy nem escrita remota (PUT/POST respondem `501`).
-Para publicar, o arquivo precisa chegar ao sistema de arquivos do celular. Há um
-`git pull` automático a cada 5 minutos no projeto — se a maquete entrar nesse
-repositório, ela sobe sozinha.
 
-## O que publicar
+## Deploy automático — o caminho normal
 
-O projeto da maquete é **um único arquivo** (`casa-3d.html`, autocontido: a casa
-é gerada por código, a planta vai embutida em base64 e o SW4 da garagem vai como
-glTF binário em base64). São **~5,9 MB**. Ele deve ficar disponível como
-`index.html` dentro de uma pasta do portal:
+**Basta `git push` na branch `main`.** Em até 5 minutos o site está atualizado,
+sem ninguém tocar no aparelho: sem ADB, sem SSH, sem terminal no celular.
+
+Como funciona: o celular roda o `~/watchdog.sh`, que a cada 10 voltas (o loop é de
+30 s) executa o `~/deploy/pull.sh`. Esse script lê o `~/deploy/repos.conf`, faz
+`git fetch --depth 1` + `git reset --hard origin/main` e publica o arquivo
+indicado como `~/site/public/spaceapps/casa-3d/index.html`.
+
+Configuração aplicada em 26/11/2026:
 
 ```
-~/site/public/spaceapps/casa-3d/index.html
+# ~/deploy/repos.conf
+spaceapps/casa-3d|https://github.com/pedropaulodfr/modelagem-3d-casa.git|main||casa-3d.html
 ```
 
-Com isso a página responde em:
+- `spaceapps/casa-3d` é o **destino**: o `pull.sh` publica em
+  `~/site/public/<nome>/`, e é isso que faz a página responder em
+  `spaceapps.online/casa-3d/` (e não em `dash.spaceapps.online/casa-3d/`);
+- o 5º campo (`casa-3d.html`) é o **arquivo único** que vira `index.html`;
+- o commit publicado fica em `~/deploy/state/spaceapps_casa-3d.sha`; se o commit
+  não mudou, o `pull.sh` não reescreve os 6 MB (economiza o cartão e o log);
+- log de cada execução: `~/deploy/deploy.log`.
 
-- <https://spaceapps.online/casa-3d/>
-- <https://dash.spaceapps.online/spaceapps/casa-3d/>
-
-## Opção A — direto no Termux (mais rápido)
-
-No celular, abra o Termux e rode:
+### Conferir que a atualização chegou
 
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/pedropaulodfr/modelagem-3d-casa/main/deploy/j4-core/publicar-casa-3d.sh)
+curl -sI https://spaceapps.online/casa-3d/ | grep -i last-modified
+curl -s https://spaceapps.online/casa-3d/ | sha256sum
 ```
 
-O script baixa o `casa-3d.html` do GitHub, cria
-`~/site/public/spaceapps/casa-3d/` e grava o `index.html`. Não precisa reiniciar
-nada: o `server.py` lê do disco a cada requisição.
+Compare com o `sha256sum casa-3d.html` do repositório: deve bater (tirando a
+diferença de CRLF/LF, se você commitou do Windows).
 
-Alternativa manual, em 4 comandos:
+### Regras para quem edita o projeto
+
+- O site é **um único arquivo** (`casa-3d.html`, ~6 MB, sem etapa de build).
+  Edite HTML, CSS e JS direto nele; não introduza bundler.
+- Mantenha `<meta charset="utf-8">` como **primeira linha**. O `server.py`
+  responde `Content-Type: text/html` sem charset; sem essa meta o navegador lê
+  como Latin-1 e todos os acentos quebram.
+- Three.js e as fontes vêm de CDN (jsDelivr e Google Fonts): o celular não baixa
+  nada, mas quem visita precisa de internet.
+- Arquivo com menos de 100 KB é **recusado** pelo `pull.sh` (proteção contra
+  commit truncado); o site continua na versão anterior.
+
+## Publicar na mão (fallback)
+
+### Opção A — direto no Termux
 
 ```bash
-mkdir -p ~/site/public/spaceapps/casa-3d
-curl -fsSL https://raw.githubusercontent.com/pedropaulodfr/modelagem-3d-casa/main/casa-3d.html \
-  -o ~/site/public/spaceapps/casa-3d/index.html
-ls -l ~/site/public/spaceapps/casa-3d/
-curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:8080/spaceapps/casa-3d/
+bash ~/deploy/pull.sh     # aplica o que está na main agora, sem esperar os 5 min
 ```
 
-## Opção B — pelo PC, com o celular no cabo USB
+### Opção B — celular no cabo USB
 
 Com a depuração USB ligada (`Configurações > Opções do desenvolvedor`):
 
@@ -73,32 +87,34 @@ mkdir -p ~/site/public/spaceapps/casa-3d
 cp ~/storage/downloads/casa-3d.html ~/site/public/spaceapps/casa-3d/index.html
 ```
 
-## Opção C — pelo repositório que o celular já puxa
+### Opção C — `publicar-casa-3d.sh`
 
-Se o `git pull` automático do `~/site` apontar para um repositório no GitHub,
-basta o arquivo entrar nele (ex.: `public/spaceapps/casa-3d/index.html`) e o
-`watchdog` publica em até 5 minutos. Nesse caso, informe qual é o repositório.
+O script `publicar-casa-3d.sh` baixa o `casa-3d.html` do `raw.githubusercontent.com`
+e grava direto. **Só use se o pull automático estiver fora do ar** — ele ignora o
+`repos.conf` e não registra estado.
 
-## Conferir depois de publicar
+## Se algo der errado
 
-```bash
-curl -s -o /dev/null -w "%{http_code}\n" https://spaceapps.online/casa-3d/
-curl -s -o /dev/null -w "index: %{http_code}  %{size_download} bytes\n" https://dash.spaceapps.online/spaceapps/casa-3d/
-```
-
-Esperado: `200` e cerca de 5,9 MB. Se vier `403`, a pasta existe mas o
-`index.html` não foi para o lugar certo; se vier `404`, o caminho está errado.
+1. `tail -50 ~/deploy/deploy.log` — mostra fetch/reset/publicação de cada volta.
+2. `pgrep -f watchdog.sh` — vazio significa que o vigilante morreu:
+   `nohup bash ~/watchdog.sh >> ~/watchdog.log 2>&1 &`
+3. No próprio celular:
+   `curl -s -o /dev/null -w '%{http_code}\n' -H 'Host: spaceapps.online' http://127.0.0.1:8080/casa-3d/`
+4. **Se o celular reiniciar, nada sobe sozinho** (não há Termux:Boot instalado).
+   É preciso abrir o Termux e rodar:
+   `nohup bash ~/watchdog.sh >> ~/watchdog.log 2>&1 &`
+   Enquanto isso o site fica fora do ar e o deploy automático não roda.
 
 ## Opcional — card no portal
 
 O portal (`~/site/public/index.html`) lista os projetos em cards. Para destacar a
 maquete, acrescente um card seguindo o padrão dos existentes, apontando para
-`/spaceapps/casa-3d/`. Isso é só apresentação: a página já funciona sem o card.
+`/casa-3d/`. Isso é só apresentação: a página já funciona sem o card.
 
 ## Observações técnicas
 
-- A página é estática: o celular só entrega o arquivo (5,9 MB). O WebGL roda no
+- A página é estática: o celular só entrega o arquivo (6,2 MB). O WebGL roda no
   navegador de quem visita, não no J4 Core.
-- O Three.js 0.160 vem por CDN (jsDelivr) e as fontes do Google Fonts, então o
-  visitante precisa de internet — o celular não precisa baixar nada.
 - Não há etapa de build nem dependências no servidor.
+- O `pull.sh` é genérico: aceita vários projetos, um por linha no `repos.conf`,
+  no formato `nome|url|branch|subpasta[|arquivo_unico]`.
