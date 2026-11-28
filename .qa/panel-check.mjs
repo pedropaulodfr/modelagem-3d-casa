@@ -18,8 +18,9 @@ const profile = mkdtempSync(join(tmpdir(), 'edge-panel-'));
 const edge = spawn(EDGE, [
   '--headless=new', `--remote-debugging-port=${PORT}`, `--user-data-dir=${profile}`,
   '--no-first-run', '--no-default-browser-check', '--disable-extensions', '--disable-sync',
-  '--mute-audio', '--hide-scrollbars', '--window-size=1280,900', '--enable-unsafe-swiftshader',
-  '--disable-dev-shm-usage', 'about:blank',
+  '--mute-audio', '--hide-scrollbars', '--window-size=1280,900',
+  // GPU real (D3D11/WARP): mais estável que SwiftShader neste app, que compila shaders no load
+  '--use-angle=d3d11', '--enable-gpu', '--disable-dev-shm-usage', 'about:blank',
 ], { stdio: 'ignore', windowsHide: true });
 
 // Segura o requestAnimationFrame antes de qualquer script da página: o loop do three.js
@@ -101,6 +102,8 @@ const PROBE = `(() => {
       return ox > 0 && oy > 0 ? Math.round(ox * oy) : 0;
     })(),
     hudDisplay: cs(hud).display,
+    quality: (() => { const q = document.getElementById('q-profile'); return q ? q.value : null; })(),
+    canvasW: (document.querySelector('#app canvas') || {}).width || 0,
     stored: localStorage.getItem('casa3d:painel-min'),
     scrollbar: panel.scrollHeight > panel.clientHeight + 1,
   };
@@ -128,15 +131,19 @@ async function main() {
     writeFileSync(join(OUT, name + '.png'), Buffer.from(r.data, 'base64'));
     console.log('SHOT', join(OUT, name + '.png'));
   };
-  const ready = async (timeoutMs = 600000) => {
+  const ready = async (timeoutMs = 900000) => {
     const t0 = Date.now();
     while (Date.now() - t0 < timeoutMs) {
-      const r = await cdp.call('Runtime.evaluate', {
-        expression: `({ rs: document.readyState, panel: !!document.getElementById('panel'), dbg: !!window.__dbg })`,
-        returnByValue: true,
-      }, 300000);
-      if (r.result.value.rs === 'complete' && r.result.value.panel) return r.result.value;
-      await sleep(400);
+      try {
+        const r = await cdp.call('Runtime.evaluate', {
+          expression: `({ rs: document.readyState, panel: !!document.getElementById('panel'), dbg: !!window.__dbg })`,
+          returnByValue: true,
+        }, 120000);
+        if (r.result.value.rs === 'complete' && r.result.value.panel) return r.result.value;
+      } catch (e) {
+        // a thread principal fica presa no pré-aquecimento dos shaders: tenta de novo
+      }
+      await sleep(1000);
     }
     throw new Error('página não carregou');
   };
@@ -271,6 +278,8 @@ async function main() {
     ['desktop rolado: botão continua acessível', a.desktopScrolled && a.desktopScrolled.btnInsidePanel],
     ['desktop minimizado: pílula pequena', a.desktopMin && a.desktopMin.panel.h <= 60],
     ['desktop minimizado: corpo oculto', a.desktopMin && a.desktopMin.bodyDisplay === 'none'],
+    ['qualidade inicial é Desempenho', a.mobileExpanded && a.mobileExpanded.quality === 'desempenho'],
+    ['qualidade inicial em dpr 1 (canvas = viewport)', a.mobileExpanded && a.mobileExpanded.canvasW === a.mobileExpanded.viewport.w],
     ['recarregar mantém minimizado', a.mobileReloaded && a.mobileReloaded.min === true && a.mobileReloaded.label === 'Expandir'],
     ['cena desenhou para as capturas', !!(a.visual && a.visual.livre)],
     ['sem erros de console', !errors.length],

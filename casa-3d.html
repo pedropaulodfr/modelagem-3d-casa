@@ -198,7 +198,7 @@ details.dims summary { cursor: pointer; font-size: 12.5px; color: var(--muted); 
 
   <div class="sec">
     <div class="sec-t">Desempenho</div>
-    <div class="field-row"><label for="q-profile">Qualidade</label><select id="q-profile"><option value="alto">Alto</option><option value="equilibrado">Equilibrado</option><option value="desempenho">Desempenho</option></select></div>
+    <div class="field-row"><label for="q-profile">Qualidade</label><select id="q-profile"><option value="alto">Alto</option><option value="equilibrado">Equilibrado</option><option value="desempenho" selected>Desempenho</option></select></div>
     <div class="toggles"><label><input type="checkbox" id="q-auto" checked> Resolução automática</label><label><input type="checkbox" id="q-diag"> Diagnóstico (F3)</label></div>
   </div>
 
@@ -3303,7 +3303,7 @@ const QUALITY = {
   equilibrado: { dprCap: 1.5, sun: 2048, spot: 512, aniso: 4, cull: Infinity }, // sem corte de luzes: evita recompilar shaders ao caminhar
   desempenho:  { dprCap: 1,   sun: 1024, spot: 256, aniso: 2, cull: 10 },
 };
-const Q = { name: 'equilibrado', auto: true, dpr: 1, dprMax: 1 };
+const Q = { name: 'desempenho', auto: true, dpr: 1, dprMax: 1 };
 const ALL_TEX = new Set();
 scene.traverse(o => { if (o.isMesh) for (const m of [].concat(o.material)) for (const k in m) if (m[k] && m[k].isTexture) ALL_TEX.add(m[k]); });
 function setRenderDpr(v) { renderer.setPixelRatio(v); resize(); invalidate(); }
@@ -3367,8 +3367,9 @@ function diagUpdate(now, rendered) {
 addEventListener('keydown', e => { if (e.key === 'F3') { e.preventDefault(); const cb = document.getElementById('q-diag'); cb.checked = !cb.checked; diagToggle(cb.checked); } });
 {
   const qs = document.getElementById('q-profile'), qa = document.getElementById('q-auto'), qd = document.getElementById('q-diag');
-  // padrão fixo: "Equilibrado" (a resolução automática continua ajustando o pixel ratio se o aparelho apertar)
-  qs.value = 'equilibrado'; setQuality('equilibrado');
+  // padrão fixo: "Desempenho", sempre — nunca inicia em "Alto". A resolução automática
+  // continua ajustando o pixel ratio, e o usuário pode subir a qualidade à mão se quiser.
+  qs.value = 'desempenho'; setQuality('desempenho');
   qs.addEventListener('change', () => setQuality(qs.value));
   qa.addEventListener('change', () => { Q.auto = qa.checked; if (!Q.auto) { Q.dpr = Q.dprMax; applyDpr(); } });
   qd.addEventListener('change', () => diagToggle(qd.checked));
